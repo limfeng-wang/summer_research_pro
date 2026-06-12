@@ -1,0 +1,36 @@
+# Chrome 用户数据目录（含 cookie / 登录态）
+profiles/
+
+# 采集输出数据
+data/
+src/输出数据/
+
+# 个人配置文件（请从 config.example.yaml 复制）
+config.yaml
+config_now.yaml
+
+# 登录状态标记
+login_done.txt
+
+# Claude 配置
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+*.pma
+*.db-journal
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

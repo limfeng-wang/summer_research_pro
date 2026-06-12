@@ -1,0 +1,58 @@
+# xhs-scraper 配置示例
+#
+# 使用方法：复制此文件为 config.yaml，按需修改
+
+scheduler:
+  # 每日总采集量（所有关键词合计，达到后当日停止）
+  daily_count: 50
+
+  # 允许运行的时间段（24小时制，可多个）
+  # 在每个窗口内，系统会持续循环：采集 → 休息 → 再采集
+  time_windows:
+    - "08:00-11:30"
+    - "13:00-17:00"
+    - "19:00-23:00"
+
+  # 搜索关键词列表
+  keywords:
+    - "牙痛"
+    - "牙疼"
+
+  # 每个窗口内，两次会话之间的随机休息间隔（分钟）
+  rest_between_sessions: [5, 15]
+
+  # 滚动到底且无新卡片后，等待多久再重试一次（分钟）
+  bottom_retry_minutes: [15, 25]
+
+  # 随机跳过某个时间窗口的概率（0.0 ~ 1.0）
+  random_skip_chance: 0.10
+
+session_limits:
+  # 单次安全上限
+  per_session_cap: 200
+  # 单次会话最多滚动次数
+  max_scrolls: 2000
+  # 连续多少次滚动无新卡片后判定为"到底"
+  scroll_stale_limit: 5
+
+chrome:
+  # Chrome 用户数据目录（相对于项目根目录，首次运行自动创建）
+  profile_dir: "profiles/chrome_main"
+  # CDP 调试端口
+  cdp_port: 9222
+  # 浏览器窗口尺寸
+  window_size: [1400, 900]
+
+# 多账号管理（可选）
+accounts:
+  profiles:
+    - "profiles/chrome_main"
+  random_select: true
+
+collection:
+  # 数据输出目录
+  data_dir: "data"
+  # SQLite 数据库路径
+  db_path: "data/archive.db"
+  # 详情页中滚动查看的概率
+  detail_scroll_chance: 0.35
