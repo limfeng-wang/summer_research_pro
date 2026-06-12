@@ -1,0 +1,41 @@
+# 敏感文件
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# 数据文件（太大，不上传）
+*.xlsx
+*.xls
+*.csv
+*.zip
+*.tmp
+*.docx
+
+# 输出结果
+experiment_full_trace/
+experiment_traces/
+prompts_history/
+best_prompts/
+best_prompts_final/
+annotation_cache/
+annotation_cache_complete/
+final_annotation_results_complete/
+final_verification_results/
+Permutation_Experiment_Results/
+
+# 模型文件
+models/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+~$*
