@@ -19,9 +19,10 @@ from dental_ai.schemas import (
 def make_unit(**overrides):
     data = {
         "domain": CSMDomain.COPING_AND_MANAGEMENT,
-        "evidence_span": "吃了布洛芬",
-        "surface_text": "布洛芬",
-        "normalized_concept": "Oral analgesic",
+        "evidence_span_original": "吃了布洛芬",
+        "surface_text_working": "布洛芬",
+        "working_language": Language.ZH,
+        "normalized_concept_en": "Oral analgesic",
         "concept_status": ConceptStatus.EXISTING_DICTIONARY,
         "support_type": SupportType.EXPLICIT,
         "assertion": AssertionStatus.PRESENT,
@@ -41,9 +42,9 @@ def test_domain_labels_are_derived_from_accepted_units():
             make_unit(),
             make_unit(
                 domain=CSMDomain.PERCEIVED_CAUSE,
-                evidence_span="智齿发炎",
-                surface_text="智齿发炎",
-                normalized_concept="Inflamed wisdom tooth",
+                evidence_span_original="智齿发炎",
+                surface_text_working="智齿发炎",
+                normalized_concept_en="Inflamed wisdom tooth",
                 judge_verdict=JudgeVerdict.REJECT,
             ),
         ],
@@ -60,7 +61,7 @@ def test_validate_against_post_checks_metadata_and_evidence_spans():
         post_id="p1",
         country=Country.CHI,
         language=Language.ZH,
-        text="智齿发炎疼得睡不着，吃了布洛芬还是没用。",
+        original_text="智齿发炎疼得睡不着，吃了布洛芬还是没用。",
     )
     result = ExtractionResult(
         post_id="p1",
@@ -77,7 +78,7 @@ def test_validate_against_post_rejects_ungrounded_spans():
         post_id="p1",
         country=Country.CHI,
         language=Language.ZH,
-        text="智齿发炎疼得睡不着。",
+        original_text="智齿发炎疼得睡不着。",
     )
     result = ExtractionResult(
         post_id="p1",
@@ -86,24 +87,43 @@ def test_validate_against_post_rejects_ungrounded_spans():
         units=[make_unit()],
     )
 
-    with pytest.raises(ValueError, match="evidence_span not found"):
+    with pytest.raises(ValueError, match="evidence_span_original not found"):
         result.validate_against_post(post)
 
 
 def test_unmapped_concepts_can_leave_normalized_concept_empty():
     unit = make_unit(
-        normalized_concept="",
+        normalized_concept_en="",
         concept_status=ConceptStatus.UNMAPPED,
         support_type=SupportType.IMPLICIT,
         judge_verdict=JudgeVerdict.NEEDS_HUMAN_REVIEW,
     )
 
-    assert unit.normalized_concept == ""
+    assert unit.normalized_concept_en == ""
 
 
 def test_mapped_concepts_require_normalized_concept():
-    with pytest.raises(ValidationError, match="normalized_concept is required"):
-        make_unit(normalized_concept="")
+    with pytest.raises(ValidationError, match="normalized_concept_en is required"):
+        make_unit(normalized_concept_en="")
+
+
+def test_legacy_unit_field_aliases_are_accepted():
+    unit = NarrativeUnit(
+        domain=CSMDomain.COPING_AND_MANAGEMENT,
+        evidence_span="歯が痛いので薬を飲んだ",
+        surface_text_original="吃了止痛药",
+        normalized_concept="Ibuprofen use",
+        concept_status=ConceptStatus.NEW_CANDIDATE,
+        support_type=SupportType.EXPLICIT,
+        assertion=AssertionStatus.PRESENT,
+        confidence=0.8,
+        judge_verdict=JudgeVerdict.ACCEPT,
+    )
+
+    assert unit.evidence_span_original == "歯が痛いので薬を飲んだ"
+    assert unit.surface_text_working == "吃了止痛药"
+    assert unit.working_language == Language.ZH
+    assert unit.normalized_concept_en == "Ibuprofen use"
 
 
 def test_confidence_is_bounded():
@@ -147,11 +167,15 @@ def test_flatten_units_exports_unit_rows():
             "post_id": "p1",
             "country": "CHI",
             "language": "zh",
+            "relevance_label": "",
+            "experiencer_label": "",
+            "content_function": "",
             "unit_id": "p1_u001",
             "domain": "Coping and Management",
-            "evidence_span": "吃了布洛芬",
-            "surface_text": "布洛芬",
-            "normalized_concept": "Oral analgesic",
+            "evidence_span_original": "吃了布洛芬",
+            "surface_text_working": "布洛芬",
+            "working_language": "zh",
+            "normalized_concept_en": "Oral analgesic",
             "concept_status": "existing_dictionary",
             "support_type": "explicit",
             "assertion": "present",

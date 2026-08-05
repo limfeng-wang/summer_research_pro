@@ -1,0 +1,18 @@
+# Core package/test dependencies
+pydantic>=2.0
+pandas
+openpyxl
+pytest
+PyYAML
+huggingface_hub
+
+# Local Hugging Face model stack, installed before real model integration.
+# Do not download model weights during dependency installation.
+torch
+transformers
+accelerate
+bitsandbytes
+sentence-transformers
+FlagEmbedding
+faiss-cpu
+tqdm

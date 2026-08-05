@@ -17,10 +17,23 @@ import pandas as pd
 from dental_ai.schemas import Country, ExtractionResult, Language, SourcePost, flatten_units
 
 
-POST_ID_CANDIDATES = ("post_id", "Post_ID", "id", "ID", "note_id", "tweet_id")
-TEXT_CANDIDATES = ("text", "Text", "content", "Content", "post_text", "clean_text", "正文")
+POST_ID_CANDIDATES = ("post_id", "record_id", "Post_ID", "id", "ID", "note_id", "tweet_id", "帖子ID")
+TITLE_CANDIDATES = ("original_title", "title", "Title", "原文标题")
+TEXT_CANDIDATES = (
+    "text_clean",
+    "original_text",
+    "text",
+    "Text",
+    "content",
+    "Content",
+    "post_text",
+    "clean_text",
+    "正文",
+    "原文正文",
+)
 COUNTRY_CANDIDATES = ("country", "Country", "country_code", "Country_Code")
 LANGUAGE_CANDIDATES = ("language", "Language", "lang", "Lang")
+PLATFORM_CANDIDATES = ("platform", "Platform")
 
 
 @dataclass(frozen=True)
@@ -33,8 +46,10 @@ class PostColumnMap:
 
     post_id: str
     text: str
+    title: str | None = None
     country: str | None = None
     language: str | None = None
+    platform: str | None = None
 
 
 def read_table(path: str | Path, sheet_name: str | int = 0) -> pd.DataFrame:
@@ -58,8 +73,10 @@ def infer_post_column_map(columns: Iterable[str]) -> PostColumnMap:
     return PostColumnMap(
         post_id=_infer_one(column_names, POST_ID_CANDIDATES, "post_id"),
         text=_infer_one(column_names, TEXT_CANDIDATES, "text"),
+        title=_infer_optional(column_names, TITLE_CANDIDATES, "title"),
         country=_infer_optional(column_names, COUNTRY_CANDIDATES, "country"),
         language=_infer_optional(column_names, LANGUAGE_CANDIDATES, "language"),
+        platform=_infer_optional(column_names, PLATFORM_CANDIDATES, "platform"),
     )
 
 
@@ -96,7 +113,8 @@ def load_posts(
     posts: list[SourcePost] = []
     for row_index, row in frame.iterrows():
         text = _clean_cell(row[column_map.text])
-        if not text and drop_empty_text:
+        title = _row_or_constant(row, column_map.title, "")
+        if not text and not title and drop_empty_text:
             continue
 
         try:
@@ -105,7 +123,10 @@ def load_posts(
                     post_id=_clean_cell(row[column_map.post_id]),
                     country=_row_or_constant(row, column_map.country, country),
                     language=_row_or_constant(row, column_map.language, language),
-                    text=text,
+                    platform=_row_or_constant(row, column_map.platform, ""),
+                    original_title=title,
+                    text_clean=text if column_map.text == "text_clean" else "",
+                    original_text="" if column_map.text == "text_clean" else text,
                 )
             )
         except Exception as exc:
@@ -123,7 +144,7 @@ def write_posts_jsonl(posts: Iterable[SourcePost], path: str | Path) -> None:
 def read_posts_jsonl(path: str | Path) -> list[SourcePost]:
     """Read source posts from JSONL previously written with schema field names."""
 
-    return [SourcePost.model_validate(item) for item in _read_jsonl(path)]
+    return [SourcePost.model_validate(_source_post_payload(item)) for item in _read_jsonl(path)]
 
 
 def write_extractions_jsonl(results: Iterable[ExtractionResult], path: str | Path) -> None:
@@ -210,6 +231,11 @@ def _read_jsonl(path: str | Path) -> list[dict[str, Any]]:
             except json.JSONDecodeError as exc:
                 raise ValueError(f"Invalid JSON on line {line_number} of {path}") from exc
     return rows
+
+
+def _source_post_payload(item: dict[str, Any]) -> dict[str, Any]:
+    allowed = set(SourcePost.model_fields) | {"record_id", "text"}
+    return {key: value for key, value in item.items() if key in allowed}
 
 
 __all__ = [

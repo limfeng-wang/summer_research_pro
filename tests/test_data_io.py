@@ -29,9 +29,10 @@ def make_unit(**overrides):
     data = {
         "unit_id": "p1_u001",
         "domain": CSMDomain.COPING_AND_MANAGEMENT,
-        "evidence_span": "吃了布洛芬",
-        "surface_text": "布洛芬",
-        "normalized_concept": "Oral analgesic",
+        "evidence_span_original": "吃了布洛芬",
+        "surface_text_working": "布洛芬",
+        "working_language": Language.ZH,
+        "normalized_concept_en": "Oral analgesic",
         "concept_status": ConceptStatus.EXISTING_DICTIONARY,
         "support_type": SupportType.EXPLICIT,
         "assertion": AssertionStatus.PRESENT,
@@ -54,8 +55,8 @@ def test_load_posts_from_csv_with_explicit_constants(tmp_path):
     posts = load_posts(path, country=Country.CHI, language=Language.ZH)
 
     assert posts == [
-        SourcePost(post_id="p1", country=Country.CHI, language=Language.ZH, text="智齿发炎疼得睡不着"),
-        SourcePost(post_id="p2", country=Country.CHI, language=Language.ZH, text="吃了布洛芬还是没用"),
+        SourcePost(post_id="p1", country=Country.CHI, language=Language.ZH, original_text="智齿发炎疼得睡不着"),
+        SourcePost(post_id="p2", country=Country.CHI, language=Language.ZH, original_text="吃了布洛芬还是没用"),
     ]
 
 
@@ -94,7 +95,7 @@ def test_load_posts_accepts_explicit_column_map(tmp_path):
         post_id="p1",
         country=Country.JPN,
         language=Language.JA,
-        text="歯が痛い",
+        original_text="歯が痛い",
     )
 
 
@@ -105,11 +106,38 @@ def test_infer_post_column_map_rejects_ambiguous_required_columns():
 
 def test_posts_jsonl_round_trip(tmp_path):
     path = tmp_path / "posts.jsonl"
-    posts = [SourcePost(post_id="p1", country=Country.KOR, language=Language.KO, text="치통")]
+    posts = [SourcePost(post_id="p1", country=Country.KOR, language=Language.KO, original_text="치통")]
 
     write_posts_jsonl(posts, path)
 
     assert read_posts_jsonl(path) == posts
+
+
+def test_read_posts_jsonl_accepts_current_raw_holdout_shape(tmp_path):
+    path = tmp_path / "raw.jsonl"
+    path.write_text(
+        (
+            '{"record_id":"CHI_1","country":"CHI","language":"zh","platform":"xiaohongshu",'
+            '"original_title":"牙疼","original_text":"牙疼得睡不着","text_clean":"牙疼 牙疼得睡不着",'
+            '"relevance_label":"","unit_id":"","domain":"","surface_text_working":""}\n'
+        ),
+        encoding="utf-8",
+    )
+
+    posts = read_posts_jsonl(path)
+
+    assert posts == [
+        SourcePost(
+            post_id="CHI_1",
+            country=Country.CHI,
+            language=Language.ZH,
+            platform="xiaohongshu",
+            original_title="牙疼",
+            original_text="牙疼得睡不着",
+            text_clean="牙疼 牙疼得睡不着",
+        )
+    ]
+    assert posts[0].combined_source_text == "牙疼 牙疼得睡不着"
 
 
 def test_extractions_jsonl_round_trip(tmp_path):
