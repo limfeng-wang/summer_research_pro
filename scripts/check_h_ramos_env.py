@@ -44,18 +44,36 @@ def main() -> int:
     if torch_status.get("available"):
         import torch
 
+        devices = []
+        cuda_available = False
+        device_count = 0
+        cuda_error = ""
+        try:
+            cuda_available = torch.cuda.is_available()
+            device_count = torch.cuda.device_count()
+            for index in range(device_count):
+                try:
+                    properties = torch.cuda.get_device_properties(index)
+                    devices.append(
+                        {
+                            "index": index,
+                            "name": properties.name,
+                            "total_memory_gb": round(properties.total_memory / 1024**3, 2),
+                        }
+                    )
+                except Exception as exc:
+                    devices.append({"index": index, "error": str(exc)})
+        except Exception as exc:
+            cuda_error = str(exc)
+
         report["cuda"] = {
-            "available": torch.cuda.is_available(),
-            "device_count": torch.cuda.device_count(),
-            "devices": [
-                {
-                    "index": index,
-                    "name": torch.cuda.get_device_name(index),
-                    "total_memory_gb": round(torch.cuda.get_device_properties(index).total_memory / 1024**3, 2),
-                }
-                for index in range(torch.cuda.device_count())
-            ],
+            "available": cuda_available,
+            "torch_cuda_version": getattr(torch.version, "cuda", None),
+            "device_count": device_count,
+            "devices": devices,
         }
+        if cuda_error:
+            report["cuda"]["error"] = cuda_error
 
     print(json.dumps(report, ensure_ascii=False, indent=2))
     missing = [name for name, status in report["packages"].items() if not status["available"]]
@@ -72,3 +90,4 @@ def _package_status(package: str) -> dict[str, object]:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

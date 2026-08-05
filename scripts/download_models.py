@@ -15,7 +15,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Download configured Hugging Face model snapshots.")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG), help="Model stack YAML config")
     parser.add_argument("--cache-dir", default="", help="Optional Hugging Face cache directory")
-    parser.add_argument("--local-dir", default="", help="Optional directory for local snapshots")
+    parser.add_argument(
+        "--models-root",
+        default="",
+        help="Optional root directory. Each model is stored as <models-root>/<org>/<repo>.",
+    )
     args = parser.parse_args()
 
     try:
@@ -32,10 +36,11 @@ def main() -> int:
         kwargs: dict[str, Any] = {}
         if args.cache_dir:
             kwargs["cache_dir"] = args.cache_dir
-        if args.local_dir:
-            role_dir = Path(args.local_dir) / role
-            role_dir.mkdir(parents=True, exist_ok=True)
-            kwargs["local_dir"] = str(role_dir)
+        if args.models_root:
+            model_dir = Path(args.models_root) / model_id
+            model_dir.mkdir(parents=True, exist_ok=True)
+            kwargs["local_dir"] = str(model_dir)
+            kwargs["local_dir_use_symlinks"] = False
         path = snapshot_download(repo_id=model_id, **kwargs)
         downloads[role] = path
         print(f"{role}: {model_id} -> {path}")

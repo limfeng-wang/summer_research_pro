@@ -3,13 +3,14 @@ set -euo pipefail
 
 ENV_NAME="${ENV_NAME:-h-ramos}"
 DOWNLOAD_MODELS="${DOWNLOAD_MODELS:-0}"
+MODELS_ROOT="${MODELS_ROOT:-/hdd-storage/lawrencelcty/huggingface/models}"
 SMOKE_LIMIT="${SMOKE_LIMIT:-10}"
 OUT_DIR="${OUT_DIR:-outputs/smoke_test}"
 
 bash scripts/setup_h_ramos_env.sh "$ENV_NAME"
 
 if [[ "$DOWNLOAD_MODELS" == "1" ]]; then
-  python scripts/download_models.py --config configs/model_stack.yaml
+  python scripts/download_models.py --config configs/model_stack.yaml --models-root "$MODELS_ROOT"
 else
   echo "Skipping model download. Set DOWNLOAD_MODELS=1 to fetch configured HF models."
 fi

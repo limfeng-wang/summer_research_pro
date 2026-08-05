@@ -38,6 +38,24 @@ To also download configured Hugging Face models:
 DOWNLOAD_MODELS=1 bash scripts/bootstrap_and_smoke_test.sh
 ```
 
+By default, model snapshots are stored under:
+
+```text
+/hdd-storage/lawrencelcty/huggingface/models/<org>/<repo>
+```
+
+For example:
+
+```text
+/hdd-storage/lawrencelcty/huggingface/models/Qwen/Qwen3-8B-Instruct
+```
+
+To override that root:
+
+```bash
+MODELS_ROOT=/path/to/models DOWNLOAD_MODELS=1 bash scripts/bootstrap_and_smoke_test.sh
+```
+
 If the conda environment has a different name:
 
 ```bash
@@ -55,7 +73,9 @@ PYTHONPATH=. python -m dental_ai.cli check-env
 Download models only:
 
 ```bash
-python scripts/download_models.py --config configs/model_stack.yaml
+python scripts/download_models.py \
+  --config configs/model_stack.yaml \
+  --models-root /hdd-storage/lawrencelcty/huggingface/models
 ```
 
 Run a safe mock smoke test:
