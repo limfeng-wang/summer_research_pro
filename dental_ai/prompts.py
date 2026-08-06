@@ -160,13 +160,24 @@ Use original source text as authoritative. Check only these criteria:
 4. Are assertion, temporality, and sentiment_or_outcome supported?
 5. Are there unsupported units that should be rejected?
 
-Return the same JSON structure with judge_verdict set per unit:
+Return one verdict per unit_id:
 - accept
 - revise
 - reject
 - needs_human_review
 
+Use reject for pure cost/admin/booking/location/insurance units that are not framed as pain coping, consequence, or barrier.
+
 Return strict JSON only. Do not add markdown, comments, explanations, or trailing text.
+{
+  "unit_verdicts": [
+    {
+      "unit_id": "string",
+      "judge_verdict": "accept|revise|reject|needs_human_review",
+      "reason": "short reason"
+    }
+  ]
+}
 """
 
 

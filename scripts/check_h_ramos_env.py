@@ -40,6 +40,14 @@ def main() -> int:
     for package in PACKAGES:
         report["packages"][package] = _package_status(package)
 
+    if report["packages"].get("transformers", {}).get("available"):
+        import transformers
+
+        report["transformers_features"] = {
+            "has_AutoProcessor": hasattr(transformers, "AutoProcessor"),
+            "has_AutoModelForMultimodalLM": hasattr(transformers, "AutoModelForMultimodalLM"),
+        }
+
     torch_status = report["packages"].get("torch", {})
     if torch_status.get("available"):
         import torch
@@ -90,4 +98,3 @@ def _package_status(package: str) -> dict[str, object]:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

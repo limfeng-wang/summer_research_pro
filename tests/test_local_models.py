@@ -1,5 +1,6 @@
 from dental_ai.local_models import (
     _extract_label_payload,
+    apply_judge_verdict_payload,
     apply_classification_safeguards,
     apply_commercial_safeguard,
     apply_relevance_safeguard,
@@ -62,6 +63,78 @@ def test_extractor_units_are_reset_to_needs_human_review_before_judge():
     sanitized = mark_units_needing_human_review(result)
 
     assert sanitized.units[0].judge_verdict == JudgeVerdict.NEEDS_HUMAN_REVIEW
+
+
+def test_compact_judge_payload_updates_verdicts_by_unit_id():
+    result = ExtractionResult(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        units=[
+            NarrativeUnit(
+                unit_id="p1_u001",
+                domain=CSMDomain.SYMPTOM_DESCRIPTION,
+                evidence_span_original="牙疼",
+                surface_text_working="牙疼",
+                normalized_concept_en="Tooth pain",
+                concept_status=ConceptStatus.NEW_CANDIDATE,
+                support_type=SupportType.EXPLICIT,
+                assertion=AssertionStatus.PRESENT,
+                confidence=0.9,
+                judge_verdict=JudgeVerdict.NEEDS_HUMAN_REVIEW,
+            ),
+            NarrativeUnit(
+                unit_id="p1_u002",
+                domain=CSMDomain.COPING_AND_MANAGEMENT,
+                evidence_span_original="挂号",
+                surface_text_working="挂号",
+                normalized_concept_en="Appointment registration",
+                concept_status=ConceptStatus.NEW_CANDIDATE,
+                support_type=SupportType.EXPLICIT,
+                assertion=AssertionStatus.PRESENT,
+                confidence=0.9,
+                judge_verdict=JudgeVerdict.NEEDS_HUMAN_REVIEW,
+            ),
+        ],
+    )
+
+    judged = apply_judge_verdict_payload(
+        result,
+        {
+            "unit_verdicts": [
+                {"unit_id": "p1_u001", "judge_verdict": "accept"},
+                {"unit_id": "p1_u002", "judge_verdict": "reject"},
+            ]
+        },
+    )
+
+    assert [unit.judge_verdict for unit in judged.units] == [JudgeVerdict.ACCEPT, JudgeVerdict.REJECT]
+
+
+def test_compact_judge_payload_keeps_missing_units_for_human_review():
+    result = ExtractionResult(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        units=[
+            NarrativeUnit(
+                unit_id="p1_u001",
+                domain=CSMDomain.SYMPTOM_DESCRIPTION,
+                evidence_span_original="牙疼",
+                surface_text_working="牙疼",
+                normalized_concept_en="Tooth pain",
+                concept_status=ConceptStatus.NEW_CANDIDATE,
+                support_type=SupportType.EXPLICIT,
+                assertion=AssertionStatus.PRESENT,
+                confidence=0.9,
+                judge_verdict=JudgeVerdict.ACCEPT,
+            )
+        ],
+    )
+
+    judged = apply_judge_verdict_payload(result, {"unit_verdicts": []})
+
+    assert judged.units[0].judge_verdict == JudgeVerdict.NEEDS_HUMAN_REVIEW
 
 
 def test_commercial_safeguard_promotes_product_advertorial_to_c4():

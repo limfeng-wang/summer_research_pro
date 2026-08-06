@@ -390,19 +390,31 @@ def _write_manifest(
 
 
 def _hf_manifest_config(*, config_path: str, models_root: str) -> dict[str, Any]:
-    from dental_ai.model_config import load_model_stack_config
+    from dental_ai.model_config import OPTIONAL_MODEL_ROLES, active_model_roles, load_model_stack_config
 
     stack = load_model_stack_config(config_path)
-    roles = ["classifier", "extractor", "judge", "retriever", "reranker"]
+    active_roles = active_model_roles(stack)
+    optional_roles = [
+        role
+        for role in active_model_roles(stack, include_optional=True)
+        if role in OPTIONAL_MODEL_ROLES and role not in active_roles
+    ]
     models = {}
-    for role in roles:
-        if role not in stack.specs:
-            continue
+    for role in active_roles:
         spec = stack.spec(role)
         models[role] = {
             "model_id": spec.model_id,
             "backend": spec.backend,
             "local_path": str(spec.local_path(models_root)),
+        }
+    disabled_optional_models = {}
+    for role in optional_roles:
+        spec = stack.spec(role)
+        disabled_optional_models[role] = {
+            "model_id": spec.model_id,
+            "backend": spec.backend,
+            "local_path": str(spec.local_path(models_root)),
+            "disabled_by": "runtime.use_reranker=false" if role == "reranker" else "runtime",
         }
     runtime_keys = [
         "default_rag_k",
@@ -418,6 +430,8 @@ def _hf_manifest_config(*, config_path: str, models_root: str) -> dict[str, Any]
         "config_path": config_path,
         "models_root": models_root,
         "models": models,
+        "active_model_roles": active_roles,
+        "disabled_optional_models": disabled_optional_models,
         "runtime": {key: stack.runtime.get(key) for key in runtime_keys if key in stack.runtime},
         "paths": {
             "classification_gold": stack.paths.get("classification_gold", ""),

@@ -43,6 +43,7 @@ class LocalCausalLM:
         self.quantization = quantization
         self.device_map = device_map
         self._tokenizer: Any | None = None
+        self._processor: Any | None = None
         self._model: Any | None = None
 
     def generate_json_text(self, system_prompt: str, user_payload: dict[str, Any], config: GenerationConfig) -> str:
@@ -51,6 +52,9 @@ class LocalCausalLM:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
         ]
+        if self._processor is not None:
+            return self._generate_with_processor(messages, config)
+
         prompt = self._tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         inputs = self._tokenizer(prompt, return_tensors="pt").to(self._model.device)
         kwargs: dict[str, Any] = {
@@ -68,6 +72,7 @@ class LocalCausalLM:
     def close(self) -> None:
         self._model = None
         self._tokenizer = None
+        self._processor = None
         gc.collect()
         try:
             import torch
@@ -78,10 +83,103 @@ class LocalCausalLM:
             pass
 
     def _ensure_loaded(self) -> None:
-        if self._model is not None and self._tokenizer is not None:
+        if self._model is not None and (self._tokenizer is not None or self._processor is not None):
+            return
+
+        if self._uses_processor_loader():
+            self._ensure_processor_model_loaded()
             return
 
         from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+
+        quantization_config = self._quantization_config()
+        self._tokenizer = AutoTokenizer.from_pretrained(self.model_path, local_files_only=True, trust_remote_code=True)
+        self._model = AutoModelForCausalLM.from_pretrained(
+            self.model_path,
+            local_files_only=True,
+            trust_remote_code=True,
+            device_map=self.device_map,
+            quantization_config=quantization_config,
+        )
+
+    def _ensure_processor_model_loaded(self) -> None:
+        from transformers import AutoModelForCausalLM, AutoProcessor
+
+        quantization_config = self._quantization_config()
+        self._processor = AutoProcessor.from_pretrained(
+            self.model_path,
+            local_files_only=True,
+            trust_remote_code=True,
+        )
+        model_kwargs = {
+            "local_files_only": True,
+            "trust_remote_code": True,
+            "device_map": self.device_map,
+            "quantization_config": quantization_config,
+        }
+        try:
+            from transformers import AutoModelForMultimodalLM
+
+            model_cls = AutoModelForMultimodalLM
+        except ImportError:
+            model_cls = AutoModelForCausalLM
+        except AttributeError:
+            model_cls = AutoModelForCausalLM
+
+        try:
+            self._model = model_cls.from_pretrained(self.model_path, **model_kwargs)
+        except ValueError as exc:
+            if model_cls is AutoModelForCausalLM:
+                raise
+            self._model = AutoModelForCausalLM.from_pretrained(self.model_path, **model_kwargs)
+        except TypeError as exc:
+            if "quantization_config" not in str(exc):
+                raise
+            model_kwargs.pop("quantization_config", None)
+            self._model = model_cls.from_pretrained(self.model_path, **model_kwargs)
+
+    def _generate_with_processor(self, messages: list[dict[str, str]], config: GenerationConfig) -> str:
+        kwargs: dict[str, Any] = {
+            "tokenize": True,
+            "return_dict": True,
+            "return_tensors": "pt",
+            "add_generation_prompt": True,
+            "enable_thinking": False,
+        }
+        try:
+            inputs = self._processor.apply_chat_template(messages, **kwargs)
+        except TypeError:
+            kwargs.pop("enable_thinking", None)
+            inputs = self._processor.apply_chat_template(messages, **kwargs)
+        inputs = inputs.to(self._model.device)
+        input_len = inputs["input_ids"].shape[-1]
+        generate_kwargs: dict[str, Any] = {
+            "max_new_tokens": config.max_new_tokens,
+            "do_sample": config.temperature > 0,
+            "temperature": config.temperature if config.temperature > 0 else None,
+            "top_p": config.top_p if config.temperature > 0 else None,
+        }
+        generate_kwargs = {key: value for key, value in generate_kwargs.items() if value is not None}
+        outputs = self._model.generate(**inputs, **generate_kwargs)
+        response = self._processor.decode(outputs[0][input_len:], skip_special_tokens=False)
+        if hasattr(self._processor, "parse_response"):
+            parsed = self._processor.parse_response(response)
+            if isinstance(parsed, str):
+                return parsed.strip()
+            if isinstance(parsed, dict):
+                for key in ("content", "text", "response"):
+                    value = parsed.get(key)
+                    if isinstance(value, str):
+                        return value.strip()
+            return str(parsed).strip()
+        return response.strip()
+
+    def _uses_processor_loader(self) -> bool:
+        model_path = Path(self.model_path)
+        return (model_path / "processor_config.json").exists() or "gemma-4" in self.model_path.lower()
+
+    def _quantization_config(self) -> Any | None:
+        from transformers import BitsAndBytesConfig
 
         quantization_config = None
         if self.quantization == "4bit":
@@ -93,15 +191,7 @@ class LocalCausalLM:
             )
         elif self.quantization == "8bit":
             quantization_config = BitsAndBytesConfig(load_in_8bit=True)
-
-        self._tokenizer = AutoTokenizer.from_pretrained(self.model_path, local_files_only=True, trust_remote_code=True)
-        self._model = AutoModelForCausalLM.from_pretrained(
-            self.model_path,
-            local_files_only=True,
-            trust_remote_code=True,
-            device_map=self.device_map,
-            quantization_config=quantization_config,
-        )
+        return quantization_config
 
 
 class LocalRelevanceClassifier:
@@ -176,12 +266,12 @@ class LocalJudge:
             JUDGE_PROMPT,
             {
                 "post": _post_payload(post),
-                "candidate_annotation": result.model_dump(mode="json"),
+                "candidate_units": _judge_units_payload(result),
             },
-            GenerationConfig(max_new_tokens=2048),
+            GenerationConfig(max_new_tokens=768),
         )
         payload = _extract_json_object(text)
-        return ExtractionResult.model_validate(payload)
+        return apply_judge_verdict_payload(result, payload)
 
 
 def mark_units_needing_human_review(result: ExtractionResult) -> ExtractionResult:
@@ -192,6 +282,46 @@ def mark_units_needing_human_review(result: ExtractionResult) -> ExtractionResul
         for unit in result.units
     ]
     return result.model_copy(update={"units": units})
+
+
+def apply_judge_verdict_payload(result: ExtractionResult, payload: dict[str, Any]) -> ExtractionResult:
+    """Apply compact judge verdicts to an extraction result."""
+
+    verdicts = {}
+    for item in payload.get("unit_verdicts", []):
+        if not isinstance(item, dict):
+            continue
+        unit_id = item.get("unit_id")
+        verdict = item.get("judge_verdict")
+        if not unit_id or not verdict:
+            continue
+        try:
+            verdicts[str(unit_id)] = JudgeVerdict(str(verdict))
+        except ValueError:
+            continue
+
+    units = [
+        unit.model_copy(update={"judge_verdict": verdicts.get(unit.unit_id, JudgeVerdict.NEEDS_HUMAN_REVIEW)})
+        for unit in result.units
+    ]
+    return result.model_copy(update={"units": units})
+
+
+def _judge_units_payload(result: ExtractionResult) -> list[dict[str, Any]]:
+    return [
+        {
+            "unit_id": unit.unit_id,
+            "domain": unit.domain.value,
+            "evidence_span_original": unit.evidence_span_original,
+            "surface_text_working": unit.surface_text_working,
+            "normalized_concept_en": unit.normalized_concept_en,
+            "support_type": unit.support_type.value,
+            "assertion": unit.assertion.value,
+            "temporality": unit.temporality.value,
+            "sentiment_or_outcome": unit.sentiment_or_outcome.value,
+        }
+        for unit in result.units
+    ]
 
 
 def local_lm_for_role(

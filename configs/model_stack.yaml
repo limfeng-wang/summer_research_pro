@@ -13,8 +13,8 @@ model_stack:
     device_policy: auto
   judge:
     role: LLM-as-Judge
-    model_id: google/gemma-3-4b-it
-    backend: transformers
+    model_id: google/gemma-4-E2B-it
+    backend: transformers-gemma4
     quantization: 4bit
     device_policy: auto
   retriever:

@@ -12,6 +12,6 @@ eval "$(conda shell.bash hook)"
 conda activate "$ENV_NAME"
 
 python -m pip install --upgrade pip
-python -m pip install -r requirements-h-ramos.txt
+python -m pip install --upgrade -r requirements-h-ramos.txt
 
 PYTHONPATH=. python -m dental_ai.cli check-env

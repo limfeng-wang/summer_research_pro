@@ -17,7 +17,7 @@ Configured in `configs/model_stack.yaml`:
 
 - Classifier: `Qwen/Qwen3-4B-Instruct-2507`
 - Extractor: `Qwen/Qwen3-8B`
-- Judge: `google/gemma-3-4b-it`
+- Judge: `google/gemma-4-E2B-it`
 - Retriever: `BAAI/bge-m3`
 - Optional reranker diagnostic: `BAAI/bge-reranker-v2-m3`
 
