@@ -116,3 +116,42 @@ def test_run_hierarchical_mock_writes_outputs(tmp_path):
     assert manifest["rows_attempted"] == 1
     assert manifest["rows_succeeded"] == 1
     assert manifest["rows_failed"] == 0
+
+
+def test_check_reranker_reports_missing_model_path(tmp_path):
+    config = tmp_path / "model_stack.json"
+    config.write_text(
+        json.dumps(
+            {
+                "model_stack": {
+                    "reranker": {
+                        "role": "multilingual reranking",
+                        "model_id": "BAAI/bge-reranker-v2-m3",
+                        "backend": "transformers",
+                    }
+                },
+                "runtime": {},
+                "paths": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "dental_ai.cli",
+            "check-reranker",
+            "--config",
+            str(config),
+            "--models-root",
+            str(tmp_path / "models"),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert proc.returncode == 1
+    assert "reranker model path does not exist" in proc.stderr

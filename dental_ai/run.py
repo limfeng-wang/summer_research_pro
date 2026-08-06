@@ -81,6 +81,8 @@ def main(argv: list[str] | None = None) -> int:
         input_path=args.input,
         backend=args.backend,
         stage=args.hf_stage if args.backend == "hf" else "mock",
+        config_path=args.config if args.backend == "hf" else "",
+        models_root=args.models_root if args.backend == "hf" else "",
         attempted=len(posts),
         errors=errors,
     )
@@ -355,6 +357,8 @@ def _write_manifest(
     input_path: str,
     backend: str,
     stage: str,
+    config_path: str,
+    models_root: str,
     attempted: int,
     errors: list[dict[str, Any]],
 ) -> None:
@@ -371,7 +375,46 @@ def _write_manifest(
         "validation_ok": sum(1 for output in output_list if output.trace.validation.ok),
         "validation_failed": sum(1 for output in output_list if not output.trace.validation.ok),
     }
+    if backend == "hf":
+        manifest["hf_config"] = _hf_manifest_config(config_path=config_path, models_root=models_root)
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _hf_manifest_config(*, config_path: str, models_root: str) -> dict[str, Any]:
+    from dental_ai.model_config import load_model_stack_config
+
+    stack = load_model_stack_config(config_path)
+    roles = ["classifier", "extractor", "judge", "retriever", "reranker"]
+    models = {}
+    for role in roles:
+        if role not in stack.specs:
+            continue
+        spec = stack.spec(role)
+        models[role] = {
+            "model_id": spec.model_id,
+            "backend": spec.backend,
+            "local_path": str(spec.local_path(models_root)),
+        }
+    runtime_keys = [
+        "default_rag_k",
+        "classification_fewshot_k",
+        "use_reranker",
+        "reranker_backend",
+        "reranker_batch_size",
+        "reranker_max_length",
+        "reranker_use_fp16",
+        "reranker_device",
+    ]
+    return {
+        "config_path": config_path,
+        "models_root": models_root,
+        "models": models,
+        "runtime": {key: stack.runtime.get(key) for key in runtime_keys if key in stack.runtime},
+        "paths": {
+            "classification_gold": stack.paths.get("classification_gold", ""),
+            "rag_gold": stack.paths.get("rag_gold", ""),
+        },
+    }
 
 
 def _should_extract_csm_result(result: ExtractionResult, config: object) -> bool:

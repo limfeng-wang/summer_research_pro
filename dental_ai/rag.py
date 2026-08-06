@@ -6,7 +6,7 @@ import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Protocol
 
 from dental_ai.goldset import assert_ready_for_rag_seed, load_csm_gold_json
 from dental_ai.model_config import DEFAULT_MODELS_ROOT, ModelStackConfig
@@ -25,6 +25,125 @@ class RetrievedExample:
     rank: int
 
 
+class PairReranker(Protocol):
+    """Scores query/example text pairs."""
+
+    def score(self, query: str, passages: list[str]) -> list[float]:
+        """Return one score per passage."""
+
+
+@dataclass(frozen=True)
+class RerankerConfig:
+    """Runtime settings for pairwise reranking."""
+
+    backend: str = "transformers"
+    batch_size: int = 1
+    max_length: int = 512
+    use_fp16: bool = True
+    device: str = "auto"
+
+
+class TransformersSequenceReranker:
+    """Direct HF sequence-classification reranker.
+
+    This avoids the FlagEmbedding `compute_score` path that can hang on some
+    Windows/WSL + small-GPU setups while keeping the same BGE reranker weights.
+    """
+
+    def __init__(self, model_path: str | Path, config: RerankerConfig):
+        self.model_path = str(model_path)
+        self.config = config
+        self._tokenizer = None
+        self._model = None
+        self._device = None
+
+    def score(self, query: str, passages: list[str]) -> list[float]:
+        if not passages:
+            return []
+        self._ensure_loaded()
+        scores: list[float] = []
+        for start in range(0, len(passages), self.config.batch_size):
+            batch = passages[start : start + self.config.batch_size]
+            inputs = self._tokenizer(
+                [query] * len(batch),
+                batch,
+                padding=True,
+                truncation=True,
+                max_length=self.config.max_length,
+                return_tensors="pt",
+            ).to(self._device)
+            with self._torch.no_grad():
+                logits = self._model(**inputs).logits
+            if logits.ndim == 2 and logits.shape[-1] > 1:
+                batch_scores = logits[:, -1]
+            else:
+                batch_scores = logits.reshape(-1)
+            scores.extend(float(value) for value in batch_scores.detach().cpu().tolist())
+        return scores
+
+    def _ensure_loaded(self) -> None:
+        if self._model is not None and self._tokenizer is not None:
+            return
+
+        import torch
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+        self._torch = torch
+        if self.config.device == "auto":
+            self._device = "cuda" if torch.cuda.is_available() else "cpu"
+        else:
+            self._device = self.config.device
+
+        dtype = torch.float16 if self.config.use_fp16 and self._device == "cuda" else None
+        self._tokenizer = AutoTokenizer.from_pretrained(
+            self.model_path,
+            local_files_only=True,
+            trust_remote_code=True,
+        )
+        kwargs = {
+            "local_files_only": True,
+            "trust_remote_code": True,
+        }
+        if dtype is not None:
+            kwargs["torch_dtype"] = dtype
+        self._model = AutoModelForSequenceClassification.from_pretrained(self.model_path, **kwargs)
+        self._model.to(self._device)
+        self._model.eval()
+
+
+class FlagEmbeddingPairReranker:
+    """FlagEmbedding reranker kept as an explicit optional backend."""
+
+    def __init__(self, model_path: str | Path, config: RerankerConfig):
+        self.model_path = str(model_path)
+        self.config = config
+        self._reranker = None
+
+    def score(self, query: str, passages: list[str]) -> list[float]:
+        if not passages:
+            return []
+        if self._reranker is None:
+            from FlagEmbedding import FlagReranker
+
+            devices = None if self.config.device == "auto" else [self.config.device]
+            kwargs = {"use_fp16": self.config.use_fp16}
+            if devices is not None:
+                kwargs["devices"] = devices
+            self._reranker = FlagReranker(self.model_path, **kwargs)
+        scores = []
+        for passage in passages:
+            value = self._reranker.compute_score(
+                [[query, passage]],
+                batch_size=1,
+                max_length=self.config.max_length,
+                normalize=True,
+            )
+            if isinstance(value, list):
+                value = value[0]
+            scores.append(float(value))
+        return scores
+
+
 class GoldRAGRetriever:
     """Retrieve similar adjudicated CSM examples from the few-shot gold set."""
 
@@ -35,12 +154,16 @@ class GoldRAGRetriever:
         embedding_model_path: str | Path | None = None,
         reranker_model_path: str | Path | None = None,
         use_embeddings: bool = True,
+        use_reranker: bool = False,
+        reranker_config: RerankerConfig | None = None,
     ):
         self.gold = list(gold)
         assert_ready_for_rag_seed(self.gold, min_primary_posts=1, min_proxy_posts=1)
         self.embedding_model_path = Path(embedding_model_path) if embedding_model_path else None
         self.reranker_model_path = Path(reranker_model_path) if reranker_model_path else None
         self.use_embeddings = use_embeddings
+        self.use_reranker = use_reranker
+        self.reranker_config = reranker_config or RerankerConfig()
         self._texts = [_result_text(result) for result in self.gold]
         self._tokens = [_tokenize(text) for text in self._texts]
         self._embedder = None
@@ -54,17 +177,29 @@ class GoldRAGRetriever:
         *,
         models_root: str | Path = DEFAULT_MODELS_ROOT,
         use_embeddings: bool = True,
+        use_reranker: bool | None = None,
     ) -> GoldRAGRetriever:
         gold_path = stack.paths.get("rag_gold", "")
         if not gold_path:
             raise ValueError("Model stack config must define paths.rag_gold for full HF stage")
         retriever_path = stack.spec("retriever").local_path(models_root)
-        reranker_path = stack.spec("reranker").local_path(models_root)
+        if use_reranker is None:
+            use_reranker = bool(stack.runtime.get("use_reranker", False))
+        reranker_path = stack.spec("reranker").local_path(models_root) if use_reranker else None
+        reranker_config = RerankerConfig(
+            backend=str(stack.runtime.get("reranker_backend", "transformers")),
+            batch_size=int(stack.runtime.get("reranker_batch_size", 1)),
+            max_length=int(stack.runtime.get("reranker_max_length", 512)),
+            use_fp16=bool(stack.runtime.get("reranker_use_fp16", True)),
+            device=str(stack.runtime.get("reranker_device", "auto")),
+        )
         return cls(
             load_csm_gold_json(gold_path),
             embedding_model_path=retriever_path,
             reranker_model_path=reranker_path,
             use_embeddings=use_embeddings,
+            use_reranker=use_reranker,
+            reranker_config=reranker_config,
         )
 
     def retrieve(self, post: SourcePost, *, k: int) -> list[ExtractionResult]:
@@ -127,17 +262,13 @@ class GoldRAGRetriever:
         return scores
 
     def _rerank(self, post: SourcePost, ranked: list[tuple[int, float]]) -> list[tuple[int, float]]:
-        if not self.reranker_model_path or not self.reranker_model_path.exists():
+        if not self.use_reranker or not self.reranker_model_path or not self.reranker_model_path.exists():
             return ranked
         try:
             if self._reranker is None:
-                from FlagEmbedding import FlagReranker
-
-                self._reranker = FlagReranker(str(self.reranker_model_path), use_fp16=True)
-            pairs = [[post.combined_source_text, self._texts[index]] for index, _ in ranked]
-            scores = self._reranker.compute_score(pairs, normalize=True)
-            if isinstance(scores, float):
-                scores = [scores]
+                self._reranker = build_pair_reranker(self.reranker_model_path, self.reranker_config)
+            passages = [self._texts[index] for index, _ in ranked]
+            scores = self._reranker.score(post.combined_source_text, passages)
             return sorted(
                 [(index, float(score)) for (index, _), score in zip(ranked, scores)],
                 key=lambda item: item[1],
@@ -145,6 +276,15 @@ class GoldRAGRetriever:
             )
         except Exception:
             return ranked
+
+
+def build_pair_reranker(model_path: str | Path, config: RerankerConfig) -> PairReranker:
+    backend = config.backend.lower()
+    if backend in {"transformers", "hf", "auto"}:
+        return TransformersSequenceReranker(model_path, config)
+    if backend in {"flagembedding", "flag"}:
+        return FlagEmbeddingPairReranker(model_path, config)
+    raise ValueError(f"Unsupported reranker backend: {config.backend}")
 
 
 def retrieval_trace_rows(post: SourcePost, retrieved: list[RetrievedExample]) -> list[dict[str, object]]:
@@ -174,7 +314,12 @@ def _tokenize(text: str) -> list[str]:
 
 
 __all__ = [
+    "FlagEmbeddingPairReranker",
     "GoldRAGRetriever",
+    "PairReranker",
     "RetrievedExample",
+    "RerankerConfig",
+    "TransformersSequenceReranker",
+    "build_pair_reranker",
     "retrieval_trace_rows",
 ]

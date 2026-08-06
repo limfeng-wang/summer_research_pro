@@ -62,3 +62,16 @@ def test_gold_rag_retriever_lexical_fallback_returns_similar_gold():
     assert [item.result.post_id for item in retrieved][0] == "g1"
     assert retrieved[0].rank == 1
     assert retrieval_trace_rows(post, retrieved)[0]["gold_post_id"] == "g1"
+
+
+def test_gold_rag_retriever_skips_reranker_by_default(tmp_path):
+    retriever = GoldRAGRetriever(
+        [
+            make_gold("g1", "牙疼 半夜 睡不着 布洛芬"),
+            make_gold("g2", "智齿 拔牙 术后 肿痛", experiencer=ExperiencerLabel.E2),
+        ],
+        reranker_model_path=tmp_path,
+        use_embeddings=False,
+    )
+
+    assert retriever.use_reranker is False

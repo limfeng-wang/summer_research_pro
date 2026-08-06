@@ -30,6 +30,12 @@ runtime:
   load_one_llm_at_a_time: true
   default_rag_k: 5
   classification_fewshot_k: 8
+  use_reranker: false
+  reranker_backend: transformers
+  reranker_batch_size: 1
+  reranker_max_length: 512
+  reranker_use_fp16: true
+  reranker_device: auto
   default_working_language: zh
   source_text_authority: text_clean
 

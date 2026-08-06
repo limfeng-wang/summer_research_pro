@@ -133,6 +133,23 @@ def build_parser() -> argparse.ArgumentParser:
     models.add_argument("--models-root", default="/hdd-storage/lawrencelcty/huggingface/models")
     models.set_defaults(func=_cmd_check_models)
 
+    reranker = subparsers.add_parser(
+        "check-reranker",
+        help="Run an isolated BGE reranker scoring diagnostic without the full pipeline.",
+    )
+    reranker.add_argument("--config", default="configs/model_stack.yaml", help="Model stack config")
+    reranker.add_argument("--models-root", default="/hdd-storage/lawrencelcty/huggingface/models")
+    reranker.add_argument("--backend", choices=("transformers", "flagembedding"), default="transformers")
+    reranker.add_argument("--device", default="", help="Override reranker device, e.g. cuda or cpu")
+    reranker.add_argument("--query", default="半夜牙疼睡不着, 吃了布洛芬还是疼")
+    reranker.add_argument(
+        "--passage",
+        action="append",
+        default=None,
+        help="Candidate passage; may be repeated. Defaults to two dental examples.",
+    )
+    reranker.set_defaults(func=_cmd_check_reranker)
+
     run = subparsers.add_parser(
         "run-hierarchical",
         help="Run hierarchical annotation. Mock backend is available before HF model integration.",
@@ -238,6 +255,50 @@ def _cmd_check_models(args: argparse.Namespace) -> int:
     report = check_model_paths(config, args.models_root)
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if all(item["exists"] for item in report.values()) else 1
+
+
+def _cmd_check_reranker(args: argparse.Namespace) -> int:
+    from dental_ai.model_config import load_model_stack_config
+    from dental_ai.rag import RerankerConfig, build_pair_reranker
+
+    stack = load_model_stack_config(args.config)
+    model_path = stack.spec("reranker").local_path(args.models_root)
+    if not model_path.exists():
+        print(f"error: reranker model path does not exist: {model_path}", file=sys.stderr)
+        return 1
+
+    passages = args.passage or [
+        "作者半夜牙疼, 无法入睡, 尝试布洛芬止痛。",
+        "智齿拔除价格和挂号流程分享。",
+    ]
+    device = args.device or str(stack.runtime.get("reranker_device", "auto"))
+    reranker_config = RerankerConfig(
+        backend=args.backend,
+        batch_size=int(stack.runtime.get("reranker_batch_size", 1)),
+        max_length=int(stack.runtime.get("reranker_max_length", 512)),
+        use_fp16=bool(stack.runtime.get("reranker_use_fp16", True)),
+        device=device,
+    )
+    reranker = build_pair_reranker(model_path, reranker_config)
+    scores = reranker.score(args.query, passages)
+    print(
+        json.dumps(
+            {
+                "model_path": str(model_path),
+                "backend": reranker_config.backend,
+                "batch_size": reranker_config.batch_size,
+                "max_length": reranker_config.max_length,
+                "use_fp16": reranker_config.use_fp16,
+                "device": reranker_config.device,
+                "query": args.query,
+                "passages": passages,
+                "scores": scores,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0
 
 
 def _cmd_run_hierarchical(args: argparse.Namespace) -> int:

@@ -10,6 +10,7 @@ from typing import Any
 
 DEFAULT_CONFIG_PATH = Path("configs/model_stack.yaml")
 DEFAULT_MODELS_ROOT = Path("/hdd-storage/lawrencelcty/huggingface/models")
+OPTIONAL_MODEL_ROLES = {"reranker"}
 
 
 @dataclass(frozen=True)
@@ -75,7 +76,8 @@ def check_model_paths(config: ModelStackConfig, models_root: str | Path = DEFAUL
     """Return existence checks for all configured local model paths."""
 
     report: dict[str, dict[str, object]] = {}
-    for role, spec in config.specs.items():
+    for role in active_model_roles(config):
+        spec = config.spec(role)
         path = spec.local_path(models_root)
         report[role] = {
             "model_id": spec.model_id,
@@ -86,11 +88,29 @@ def check_model_paths(config: ModelStackConfig, models_root: str | Path = DEFAUL
     return report
 
 
+def active_model_roles(config: ModelStackConfig, *, include_optional: bool = False) -> list[str]:
+    """Return model roles required by the active runtime configuration."""
+
+    roles = []
+    for role in config.specs:
+        if role in OPTIONAL_MODEL_ROLES and not include_optional and not _optional_role_enabled(config, role):
+            continue
+        roles.append(role)
+    return roles
+
+
+def _optional_role_enabled(config: ModelStackConfig, role: str) -> bool:
+    if role == "reranker":
+        return bool(config.runtime.get("use_reranker", False))
+    return True
+
+
 __all__ = [
     "DEFAULT_CONFIG_PATH",
     "DEFAULT_MODELS_ROOT",
     "ModelSpec",
     "ModelStackConfig",
+    "active_model_roles",
     "check_model_paths",
     "load_model_stack_config",
 ]

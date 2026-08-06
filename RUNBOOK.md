@@ -19,7 +19,11 @@ Configured in `configs/model_stack.yaml`:
 - Extractor: `Qwen/Qwen3-8B`
 - Judge: `google/gemma-3-4b-it`
 - Retriever: `BAAI/bge-m3`
-- Reranker: `BAAI/bge-reranker-v2-m3`
+- Optional reranker diagnostic: `BAAI/bge-reranker-v2-m3`
+
+The default pipeline does not use or require the reranker. It can be downloaded
+and tested separately, but it is not part of the active stack unless
+`runtime.use_reranker` is set to `true`.
 
 ## One-Command Setup And Smoke Test
 
@@ -37,6 +41,9 @@ To also download configured Hugging Face models:
 ```bash
 DOWNLOAD_MODELS=1 bash scripts/bootstrap_and_smoke_test.sh
 ```
+
+This downloads only the active required models by default. With the default
+config, it does not download the optional reranker.
 
 By default, model snapshots are stored under:
 
@@ -78,6 +85,15 @@ python scripts/download_models.py \
   --models-root /hdd-storage/lawrencelcty/huggingface/models
 ```
 
+To also download the optional reranker for a separate diagnostic:
+
+```bash
+python scripts/download_models.py \
+  --config configs/model_stack.yaml \
+  --models-root /hdd-storage/lawrencelcty/huggingface/models \
+  --include-optional
+```
+
 If Hugging Face returns an Xet/CAS `401 Unauthorized` error, first make sure
 you are authenticated and have accepted gated model licenses, especially for
 Gemma:
@@ -115,6 +131,19 @@ Check local model folders without loading weights:
 PYTHONPATH=. python -m dental_ai.cli check-models \
   --models-root /hdd-storage/lawrencelcty/huggingface/models
 ```
+
+Check the optional reranker in isolation before enabling it in the main run:
+
+```bash
+PYTHONPATH=. python -m dental_ai.cli check-reranker \
+  --models-root /hdd-storage/lawrencelcty/huggingface/models \
+  --backend transformers
+```
+
+The default full pipeline keeps reranking disabled until this diagnostic is
+known to work on the target machine. With the default config, the defensible
+method claim is BGE-M3 dense RAG few-shot retrieval plus local LLM-as-Judge,
+not reranked RAG.
 
 Run a tiny local-HF classification smoke test:
 

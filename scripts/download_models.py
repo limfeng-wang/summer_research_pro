@@ -5,11 +5,15 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
 
 DEFAULT_CONFIG = Path("configs/model_stack.yaml")
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 
 def main() -> int:
@@ -27,6 +31,11 @@ def main() -> int:
         action="store_true",
         help="Use Hugging Face Xet storage backend. Disabled by default to avoid CAS auth failures.",
     )
+    parser.add_argument(
+        "--include-optional",
+        action="store_true",
+        help="Also download optional disabled models such as the reranker.",
+    )
     args = parser.parse_args()
 
     if not args.use_xet:
@@ -35,11 +44,13 @@ def main() -> int:
     try:
         from huggingface_hub import snapshot_download
         import yaml
+        from dental_ai.model_config import active_model_roles, load_model_stack_config
     except Exception as exc:
         raise SystemExit(f"Missing dependency. Run scripts/setup_h_ramos_env.sh first. Details: {exc}")
 
     config = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
-    models = _model_ids(config)
+    stack_config = load_model_stack_config(args.config)
+    models = _model_ids(config, active_model_roles(stack_config, include_optional=args.include_optional))
     downloads: dict[str, str] = {}
 
     for role, model_id in models.items():
@@ -61,11 +72,12 @@ def main() -> int:
     return 0
 
 
-def _model_ids(config: dict[str, Any]) -> dict[str, str]:
+def _model_ids(config: dict[str, Any], roles: list[str]) -> dict[str, str]:
     stack = config.get("model_stack", {})
     return {
         role: spec["model_id"]
-        for role, spec in stack.items()
+        for role in roles
+        for spec in [stack.get(role, {})]
         if isinstance(spec, dict) and spec.get("model_id")
     }
 
