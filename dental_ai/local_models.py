@@ -213,9 +213,94 @@ def apply_classification_safeguards(
     """Apply deterministic, auditable safeguards to common boundary errors."""
 
     content_function = apply_commercial_safeguard(post, content_function)
+    content_function = apply_weak_commercial_demote_safeguard(post, content_function)
     content_function = apply_help_seeking_safeguard(post, content_function)
     experiencer = apply_generic_knowledge_experiencer_safeguard(post, experiencer, content_function)
     return experiencer, content_function
+
+
+def has_strong_commercial_evidence(post: SourcePost) -> bool:
+    """Return whether source text has enough evidence for C4.
+
+    C4 needs a promotional target plus promotional stance. This protects
+    ordinary care logistics such as fees, registration, and hospital process
+    sharing from being mislabeled as advertising.
+    """
+
+    text = post.combined_source_text
+    lower_text = text.lower()
+
+    product_targets = [
+        "芬必得",
+        "布洛芬",
+        "对乙酰氨基酚",
+        "novashine",
+        "医疗器械",
+        "药",
+        "颗粒",
+        "止痛药",
+        "ibuprofen",
+        "acetaminophen",
+    ]
+    product_promo_stance = [
+        "不愧是",
+        "大品牌",
+        "全家都很信任",
+        "外卖了",
+        "每包含有",
+        "口味",
+        "包装",
+        "购买",
+        "下单",
+        "推荐",
+        "trusted",
+        "recommend",
+    ]
+
+    clinic_targets = [
+        "口腔门诊",
+        "口腔诊所",
+        "口腔医院",
+        "口腔医学中心",
+        "牙科",
+        "치과",
+        "歯科",
+        "クリニック",
+        "clinic",
+        "dental",
+    ]
+    clinic_promo_stance = [
+        "预约咨询",
+        "咨询预约",
+        "私信",
+        "预约",
+        "咨询",
+        "到院",
+        "门店",
+        "套餐",
+        "优惠",
+        "折扣",
+        "看牙",
+        "booking",
+        "book",
+        "consult",
+        "discount",
+    ]
+
+    explicit_ad = any(cue in lower_text for cue in ["广告", "推广", "合作", "赞助", "ad", "sponsored", "pr"])
+    product_ad = any(cue.lower() in lower_text for cue in product_targets) and any(
+        cue.lower() in lower_text for cue in product_promo_stance
+    )
+    clinic_account_targets = clinic_targets + ["口腔"]
+    clinic_account_ad = "@" in text and any(cue.lower() in lower_text for cue in clinic_account_targets)
+    clinic_conversion_ad = any(cue.lower() in lower_text for cue in clinic_targets) and any(
+        cue.lower() in lower_text for cue in clinic_promo_stance
+    )
+    promo_hashtags = text.count("#") >= 3 and any(
+        cue in text for cue in ["#芬必得", "#牙痛止痛药", "#上海看牙", "#看牙", "#口腔护理", "#novashine", "#Novashine"]
+    )
+
+    return explicit_ad or product_ad or clinic_account_ad or clinic_conversion_ad or promo_hashtags
 
 
 def apply_commercial_safeguard(post: SourcePost, label: ContentFunctionLabel) -> ContentFunctionLabel:
@@ -228,33 +313,25 @@ def apply_commercial_safeguard(post: SourcePost, label: ContentFunctionLabel) ->
 
     if label not in {ContentFunctionLabel.C1, ContentFunctionLabel.C3}:
         return label
+    return ContentFunctionLabel.C4 if has_strong_commercial_evidence(post) else label
+
+
+def apply_weak_commercial_demote_safeguard(post: SourcePost, label: ContentFunctionLabel) -> ContentFunctionLabel:
+    """Demote weak C4 guesses when the source lacks commercial evidence."""
+
+    if label != ContentFunctionLabel.C4 or has_strong_commercial_evidence(post):
+        return label
+
     text = post.combined_source_text
-    strong_product_cues = [
-        "不愧是",
-        "大品牌",
-        "全家都很信任",
-        "外卖了",
-        "每包含有",
-        "小绿盒",
-        "口味",
-        "颗粒",
-        "#芬必得",
-        "#牙痛止痛药",
-    ]
-    clinic_cues = [
-        "预约挂号",
-        "咨询",
-        "看牙",
-        "口腔医学中心",
-        "口腔门诊",
-        "口腔医院",
-        "口腔诊所",
-        "#上海看牙",
-        "@上海",
-    ]
-    brand_or_service = any(cue in text for cue in strong_product_cues + clinic_cues)
-    hashtag_promo = text.count("#") >= 4 and any(cue in text for cue in ["品牌", "产品", "医院", "口腔", "看牙", "止痛药"])
-    return ContentFunctionLabel.C4 if brand_or_service or hashtag_promo else label
+    first_person_cues = ["我", "我的", "本人", "作者本人", "第一次", "第二次", "私", "僕", "俺", "나는", "제가", "내 "]
+    care_logistics_cues = ["挂号", "签到", "拍片", "缴费", "手术费", "医保", "报销", "麻醉", "拔完", "拔牙后", "价格"]
+    general_knowledge_cues = ["什么是", "常见病因", "症状", "护理", "治疗", "方法", "适用于", "建议"]
+
+    if any(cue in text for cue in first_person_cues) and any(cue in text for cue in care_logistics_cues):
+        return ContentFunctionLabel.C1
+    if any(cue in text for cue in general_knowledge_cues):
+        return ContentFunctionLabel.C3
+    return label
 
 
 def apply_help_seeking_safeguard(post: SourcePost, label: ContentFunctionLabel) -> ContentFunctionLabel:
@@ -319,5 +396,7 @@ __all__ = [
     "apply_commercial_safeguard",
     "apply_generic_knowledge_experiencer_safeguard",
     "apply_help_seeking_safeguard",
+    "apply_weak_commercial_demote_safeguard",
+    "has_strong_commercial_evidence",
     "local_lm_for_role",
 ]

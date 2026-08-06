@@ -34,19 +34,27 @@ CONTENT FUNCTION LABEL
 - C1 Experience-sharing narrative: what happened to a specific experiencer is the main content: symptoms, timing, treatment, management, recovery, or outcome.
 - C2 Question/help-seeking: the author genuinely asks readers for explanation, judgement, recommendation, or actionable advice affecting a decision.
 - C3 Health knowledge sharing: reusable information about causes, symptoms, prevention, management, treatment, or care. It stands independently of one person's story.
-- C4 Advertising/commercial: primary purpose is product, brand, clinic, appointment, consultation, service, purchase, conversion, or promotion. Includes advertorials disguised as personal experience.
+- C4 Advertising/commercial: primary purpose is promotion or conversion for an identifiable commercial target: product, brand, drug, device, clinic, doctor/team, appointment, consultation, paid service, purchase channel, discount, package, or account traffic. Includes advertorials disguised as personal experience.
 - C5 Other: toothache-related but low-information reaction, joke, wish, slogan, or brief interaction.
 
 PRIMARY FUNCTION PRIORITY
 C4 > C2 > C3 > C1 > C5.
 Apply this priority only to content_function; do not change experiencer_label.
 
-C4 MUST override C1/C3 when promotional intent dominates:
-- repeated brand/product/clinic name;
+C4 requires BOTH:
+1. a commercial target: named product/brand/drug/device/clinic/service/doctor account, purchase or booking channel, paid package, discount, consultation, or identifiable institutional account; AND
+2. a promotional stance: recommendation, trust/quality claim, product features, dosage/taste/packaging, price/package selling point, appointment/booking/conversion language, account tagging, or service/location marketing.
+
+C4 MUST override C1/C3 only when this commercial evidence is strong:
+- repeated brand/product/clinic name plus favorable or purchase-oriented claims;
 - product features, dose, taste, packaging, price, purchase channel, "big brand", "trusted", "recommended";
-- clinic/service/location/account promotion, appointment guidance, consultation/booking/conversion language;
-- many product/service hashtags or account tags;
+- clinic/service/location/account promotion with appointment, consultation, booking, conversion, or account-tag evidence;
+- dense product/service hashtags or account tags that point to a brand/clinic/service;
 - educational content posted mainly to promote a clinic/product.
+
+C4 MUST NOT be used for ordinary care logistics by itself:
+- cost-sharing, hospital registration, appointment process, X-ray fee, surgery fee, insurance reimbursement, or "which department/doctor" details are NOT C4 unless a specific clinic/product/service is being promoted.
+- A personal treatment or extraction story with practical tips remains C1 when anchored in the author's own case and no commercial target is promoted.
 
 C2 must be genuine help-seeking:
 - "怎么办/どうしたら/어떡해/should I..." plus a real request for advice -> C2.
@@ -55,6 +63,7 @@ C2 must be genuine help-seeking:
 C3 vs C1:
 - If the post mainly tells the author's/specific person's own sequence of symptoms/actions/outcomes -> C1.
 - If the post mainly teaches generally reusable information, even with "you/大家" language -> C3.
+- Personal cost/process sharing from the author's own dental visit is C1 unless it becomes general unanchored education (C3) or promotion (C4).
 
 C5:
 - Use only after C1-C4 do not fit. Do not use C5 for irrelevant content; irrelevant content should have been R0 upstream.
@@ -63,6 +72,7 @@ COMPACT EXAMPLES
 - "喝了一包芬必得小绿盒, 不愧是大品牌, #芬必得 #牙痛止痛药" -> E1 + C4.
 - "牙痛急救办法: 冰敷、盐水漱口、及时就医" -> E3 + C3.
 - "我牙疼三天睡不着, 明天去拔牙" -> E1 + C1.
+- "我拔智齿两次, 第一次手术费975, 第二次1300, 分享挂号和术后注意事项" -> E1 + C1, not C4, because cost/process sharing alone is not promotion.
 - "牙疼怎么办? 现在要不要去急诊?" -> E1 + C2.
 - "我妈牙疼到吃不了饭" -> E2 + C1.
 - "智齿冠周炎症状和治疗, #上海看牙 @某口腔" -> E3 + C4 when service/account promotion dominates.
