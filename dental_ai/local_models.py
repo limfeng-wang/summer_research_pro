@@ -112,7 +112,7 @@ class LocalRelevanceClassifier:
             _post_payload(post),
             GenerationConfig(max_new_tokens=64),
         )
-        payload = _extract_json_object(text)
+        payload = _extract_label_payload(text, ["relevance_label"])
         return RelevanceLabel(payload["relevance_label"])
 
 
@@ -124,9 +124,9 @@ class LocalR1Classifier:
         text = self.lm.generate_json_text(
             R1_CLASSIFICATION_PROMPT,
             _post_payload(post),
-            GenerationConfig(max_new_tokens=128),
+            GenerationConfig(max_new_tokens=192),
         )
-        payload = _extract_json_object(text)
+        payload = _extract_label_payload(text, ["experiencer_label", "content_function"])
         experiencer = ExperiencerLabel(payload["experiencer_label"])
         content_function = ContentFunctionLabel(payload["content_function"])
         return apply_classification_safeguards(post, experiencer, content_function)
@@ -203,6 +203,29 @@ def _extract_json_object(text: str) -> dict[str, Any]:
     if not match:
         raise ValueError(f"Model output did not contain a JSON object: {text[:500]!r}")
     return json.loads(match.group(0))
+
+
+def _extract_label_payload(text: str, required_keys: list[str]) -> dict[str, Any]:
+    """Extract small classification labels from complete or truncated JSON.
+
+    Local LMs sometimes finish after emitting the two labels but before closing
+    long evidence strings. For classification-only smoke tests, the labels are
+    the contract; evidence fields are diagnostic and should not crash the run.
+    """
+
+    try:
+        payload = _extract_json_object(text)
+    except (json.JSONDecodeError, ValueError):
+        payload = {}
+        for key in required_keys:
+            match = re.search(rf'"{re.escape(key)}"\s*:\s*"([^"]+)"', text)
+            if match:
+                payload[key] = match.group(1)
+
+    missing = [key for key in required_keys if key not in payload]
+    if missing:
+        raise ValueError(f"Model output missing required label(s) {missing}: {text[:500]!r}")
+    return payload
 
 
 def apply_classification_safeguards(

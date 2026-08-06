@@ -10,9 +10,9 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable, TextIO
 
-from dental_ai.data_io import read_posts_jsonl, write_extractions_jsonl
+from dental_ai.data_io import read_posts_jsonl
 from dental_ai.pipeline import HierarchicalAnnotator
 from dental_ai.schemas import (
     AssertionStatus,
@@ -51,15 +51,35 @@ def main(argv: list[str] | None = None) -> int:
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    annotations_path = out_dir / "annotations.jsonl"
+    errors_path = out_dir / "errors.jsonl"
+    annotations_path.write_text("", encoding="utf-8")
+    errors_path.write_text("", encoding="utf-8")
 
-    if args.backend == "mock":
-        outputs = [_mock_annotator().annotate_post(post) for post in posts]
-    else:
-        outputs = _run_hf(posts, config_path=args.config, models_root=args.models_root, stage=args.hf_stage)
-    results = [output.result for output in outputs]
+    with annotations_path.open("a", encoding="utf-8") as annotations_file, errors_path.open(
+        "a",
+        encoding="utf-8",
+    ) as errors_file:
+        if args.backend == "mock":
+            outputs, errors = _run_mock(posts, annotations_file=annotations_file, errors_file=errors_file)
+        else:
+            outputs, errors = _run_hf(
+                posts,
+                config_path=args.config,
+                models_root=args.models_root,
+                stage=args.hf_stage,
+                annotations_file=annotations_file,
+                errors_file=errors_file,
+            )
 
-    write_extractions_jsonl(results, out_dir / "annotations.jsonl")
-    _write_manifest(outputs, out_dir / "run_manifest.json", input_path=args.input, backend=args.backend)
+    _write_manifest(
+        outputs,
+        out_dir / "run_manifest.json",
+        input_path=args.input,
+        backend=args.backend,
+        attempted=len(posts),
+        errors=errors,
+    )
     return 0
 
 
@@ -73,7 +93,31 @@ def _mock_annotator() -> HierarchicalAnnotator:
     )
 
 
-def _run_hf(posts: list[SourcePost], *, config_path: str, models_root: str, stage: str):
+def _run_mock(posts: list[SourcePost], *, annotations_file: TextIO, errors_file: TextIO):
+    annotator = _mock_annotator()
+    outputs = []
+    errors = []
+    for index, post in enumerate(_progress(posts, desc="annotating"), start=1):
+        try:
+            output = annotator.annotate_post(post)
+            outputs.append(output)
+            _write_result_line(annotations_file, output.result)
+        except Exception as exc:
+            error = _error_record(post, index=index, stage="mock", exc=exc)
+            errors.append(error)
+            _write_jsonl_line(errors_file, error)
+    return outputs, errors
+
+
+def _run_hf(
+    posts: list[SourcePost],
+    *,
+    config_path: str,
+    models_root: str,
+    stage: str,
+    annotations_file: TextIO,
+    errors_file: TextIO,
+):
     if stage != "classify":
         raise SystemExit("HF full extraction backend is not implemented yet. Use --hf-stage classify.")
 
@@ -87,25 +131,36 @@ def _run_hf(posts: list[SourcePost], *, config_path: str, models_root: str, stag
     relevance = LocalRelevanceClassifier(classifier_lm)
     r1 = LocalR1Classifier(classifier_lm)
     outputs = []
+    errors = []
     try:
-        for post in posts:
-            stages = ["relevance"]
-            relevance_label = relevance.classify_relevance(post)
-            result = ExtractionResult.empty_for_post(post).model_copy(update={"relevance_label": relevance_label})
-            if relevance_label == RelevanceLabel.R1:
-                experiencer, content_function = r1.classify_r1(post)
-                stages.append("r1_classification")
-                result = result.model_copy(
-                    update={
-                        "experiencer_label": experiencer,
-                        "content_function": content_function,
-                    }
-                )
-            validation = validate_hierarchical_result(result, post)
-            outputs.append(PipelineOutput(result=result, trace=PipelineTrace(stages=stages, validation=validation)))
+        for index, post in enumerate(_progress(posts, desc="hf-classify"), start=1):
+            current_stage = "relevance"
+            try:
+                stages = ["relevance"]
+                relevance_label = relevance.classify_relevance(post)
+                result = ExtractionResult.empty_for_post(post).model_copy(update={"relevance_label": relevance_label})
+                if relevance_label == RelevanceLabel.R1:
+                    current_stage = "r1_classification"
+                    experiencer, content_function = r1.classify_r1(post)
+                    stages.append("r1_classification")
+                    result = result.model_copy(
+                        update={
+                            "experiencer_label": experiencer,
+                            "content_function": content_function,
+                        }
+                    )
+                current_stage = "validation"
+                validation = validate_hierarchical_result(result, post)
+                output = PipelineOutput(result=result, trace=PipelineTrace(stages=stages, validation=validation))
+                outputs.append(output)
+                _write_result_line(annotations_file, output.result)
+            except Exception as exc:
+                error = _error_record(post, index=index, stage=current_stage, exc=exc)
+                errors.append(error)
+                _write_jsonl_line(errors_file, error)
     finally:
         classifier_lm.close()
-    return outputs
+    return outputs, errors
 
 
 class _MockRelevance:
@@ -167,12 +222,54 @@ def _first_toothache_span(text: str) -> str:
     return ""
 
 
-def _write_manifest(outputs: Iterable[object], path: Path, *, input_path: str, backend: str) -> None:
+def _progress(posts: list[SourcePost], *, desc: str):
+    try:
+        from tqdm.auto import tqdm
+
+        return tqdm(posts, total=len(posts), desc=desc, unit="post")
+    except Exception:
+        return posts
+
+
+def _write_result_line(file: TextIO, result: ExtractionResult) -> None:
+    _write_jsonl_line(file, result.model_dump(mode="json"))
+
+
+def _write_jsonl_line(file: TextIO, payload: dict[str, Any]) -> None:
+    file.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    file.flush()
+
+
+def _error_record(post: SourcePost, *, index: int, stage: str, exc: Exception) -> dict[str, Any]:
+    return {
+        "index": index,
+        "post_id": post.post_id,
+        "country": post.country.value,
+        "language": post.language.value,
+        "stage": stage,
+        "error_type": type(exc).__name__,
+        "error": str(exc),
+    }
+
+
+def _write_manifest(
+    outputs: Iterable[object],
+    path: Path,
+    *,
+    input_path: str,
+    backend: str,
+    attempted: int,
+    errors: list[dict[str, Any]],
+) -> None:
     output_list = list(outputs)
     manifest = {
         "input": input_path,
         "backend": backend,
+        "rows_attempted": attempted,
         "rows": len(output_list),
+        "rows_succeeded": len(output_list),
+        "rows_failed": len(errors),
+        "errors_path": "errors.jsonl",
         "validation_ok": sum(1 for output in output_list if output.trace.validation.ok),
         "validation_failed": sum(1 for output in output_list if not output.trace.validation.ok),
     }

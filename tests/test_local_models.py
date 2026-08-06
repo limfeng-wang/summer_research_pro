@@ -1,10 +1,26 @@
 from dental_ai.local_models import (
+    _extract_label_payload,
     apply_classification_safeguards,
     apply_commercial_safeguard,
     apply_weak_commercial_demote_safeguard,
     has_strong_commercial_evidence,
 )
 from dental_ai.schemas import ContentFunctionLabel, Country, ExperiencerLabel, Language, SourcePost
+
+
+def test_extract_label_payload_recovers_labels_from_truncated_json():
+    text = (
+        '{\n'
+        '  "experiencer_label": "E3",\n'
+        '  "content_function": "C3",\n'
+        '  "experiencer_evidence": "",\n'
+        '  "content_function_evidence": "long evidence that never closes'
+    )
+
+    assert _extract_label_payload(text, ["experiencer_label", "content_function"]) == {
+        "experiencer_label": "E3",
+        "content_function": "C3",
+    }
 
 
 def test_commercial_safeguard_promotes_product_advertorial_to_c4():

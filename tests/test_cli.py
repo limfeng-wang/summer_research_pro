@@ -109,6 +109,10 @@ def test_run_hierarchical_mock_writes_outputs(tmp_path):
     )
 
     assert (out_dir / "annotations.jsonl").exists()
+    assert (out_dir / "errors.jsonl").exists()
     assert (out_dir / "run_manifest.json").exists()
     manifest = json.loads((out_dir / "run_manifest.json").read_text(encoding="utf-8"))
     assert manifest["rows"] == 1
+    assert manifest["rows_attempted"] == 1
+    assert manifest["rows_succeeded"] == 1
+    assert manifest["rows_failed"] == 0
