@@ -16,7 +16,7 @@ target machine with the `h-ramos` conda environment.
 Configured in `configs/model_stack.yaml`:
 
 - Classifier: `Qwen/Qwen3-4B-Instruct-2507`
-- Extractor: `Qwen/Qwen3-8B-Instruct`
+- Extractor: `Qwen/Qwen3-8B`
 - Judge: `google/gemma-3-4b-it`
 - Retriever: `BAAI/bge-m3`
 - Reranker: `BAAI/bge-reranker-v2-m3`
@@ -77,6 +77,25 @@ python scripts/download_models.py \
   --config configs/model_stack.yaml \
   --models-root /hdd-storage/lawrencelcty/huggingface/models
 ```
+
+If Hugging Face returns an Xet/CAS `401 Unauthorized` error, first make sure
+you are authenticated and have accepted gated model licenses, especially for
+Gemma:
+
+```bash
+huggingface-cli login
+```
+
+Or use a token without storing it interactively:
+
+```bash
+HF_TOKEN=hf_xxx python scripts/download_models.py \
+  --config configs/model_stack.yaml \
+  --models-root /hdd-storage/lawrencelcty/huggingface/models
+```
+
+The downloader disables the Xet backend by default through
+`HF_HUB_DISABLE_XET=1`. To force Xet, pass `--use-xet`.
 
 Run a safe mock smoke test:
 

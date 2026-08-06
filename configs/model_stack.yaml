@@ -7,7 +7,7 @@ model_stack:
     device_policy: auto
   extractor:
     role: CSM evidence-unit extraction
-    model_id: Qwen/Qwen3-8B-Instruct
+    model_id: Qwen/Qwen3-8B
     backend: transformers
     quantization: 4bit
     device_policy: auto

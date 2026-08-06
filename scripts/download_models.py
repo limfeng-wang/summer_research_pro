@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +21,16 @@ def main() -> int:
         default="",
         help="Optional root directory. Each model is stored as <models-root>/<org>/<repo>.",
     )
+    parser.add_argument("--token", default="", help="Optional Hugging Face token; otherwise HF_TOKEN is used")
+    parser.add_argument(
+        "--use-xet",
+        action="store_true",
+        help="Use Hugging Face Xet storage backend. Disabled by default to avoid CAS auth failures.",
+    )
     args = parser.parse_args()
+
+    if not args.use_xet:
+        os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
 
     try:
         from huggingface_hub import snapshot_download
@@ -36,6 +46,8 @@ def main() -> int:
         kwargs: dict[str, Any] = {}
         if args.cache_dir:
             kwargs["cache_dir"] = args.cache_dir
+        if args.token:
+            kwargs["token"] = args.token
         if args.models_root:
             model_dir = Path(args.models_root) / model_id
             model_dir.mkdir(parents=True, exist_ok=True)
