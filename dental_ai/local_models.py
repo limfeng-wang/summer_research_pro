@@ -139,6 +139,7 @@ class LocalCausalLM:
             self._model = model_cls.from_pretrained(self.model_path, **model_kwargs)
 
     def _generate_with_processor(self, messages: list[dict[str, str]], config: GenerationConfig) -> str:
+        prefix = self._processor_chat_prefix(messages)
         kwargs: dict[str, Any] = {
             "tokenize": True,
             "return_dict": True,
@@ -163,16 +164,34 @@ class LocalCausalLM:
         outputs = self._model.generate(**inputs, **generate_kwargs)
         response = self._processor.decode(outputs[0][input_len:], skip_special_tokens=False)
         if hasattr(self._processor, "parse_response"):
-            parsed = self._processor.parse_response(response)
-            if isinstance(parsed, str):
-                return parsed.strip()
-            if isinstance(parsed, dict):
-                for key in ("content", "text", "response"):
-                    value = parsed.get(key)
-                    if isinstance(value, str):
-                        return value.strip()
-            return str(parsed).strip()
+            try:
+                parsed = self._processor.parse_response(response, prefix=prefix)
+                if isinstance(parsed, str):
+                    return parsed.strip()
+                if isinstance(parsed, dict):
+                    for key in ("content", "text", "response"):
+                        value = parsed.get(key)
+                        if isinstance(value, str):
+                            return value.strip()
+                return str(parsed).strip()
+            except Exception:
+                return response.strip()
         return response.strip()
+
+    def _processor_chat_prefix(self, messages: list[dict[str, str]]) -> str:
+        kwargs: dict[str, Any] = {
+            "tokenize": False,
+            "add_generation_prompt": True,
+            "enable_thinking": False,
+        }
+        try:
+            prefix = self._processor.apply_chat_template(messages, **kwargs)
+        except TypeError:
+            kwargs.pop("enable_thinking", None)
+            prefix = self._processor.apply_chat_template(messages, **kwargs)
+        if isinstance(prefix, str):
+            return prefix
+        return str(prefix)
 
     def _uses_processor_loader(self) -> bool:
         model_path = Path(self.model_path)
