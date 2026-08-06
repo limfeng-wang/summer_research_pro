@@ -129,7 +129,7 @@ class LocalR1Classifier:
         payload = _extract_json_object(text)
         experiencer = ExperiencerLabel(payload["experiencer_label"])
         content_function = ContentFunctionLabel(payload["content_function"])
-        return experiencer, apply_commercial_safeguard(post, content_function)
+        return apply_classification_safeguards(post, experiencer, content_function)
 
 
 class LocalCSMExtractor:
@@ -205,6 +205,19 @@ def _extract_json_object(text: str) -> dict[str, Any]:
     return json.loads(match.group(0))
 
 
+def apply_classification_safeguards(
+    post: SourcePost,
+    experiencer: ExperiencerLabel,
+    content_function: ContentFunctionLabel,
+) -> tuple[ExperiencerLabel, ContentFunctionLabel]:
+    """Apply deterministic, auditable safeguards to common boundary errors."""
+
+    content_function = apply_commercial_safeguard(post, content_function)
+    content_function = apply_help_seeking_safeguard(post, content_function)
+    experiencer = apply_generic_knowledge_experiencer_safeguard(post, experiencer, content_function)
+    return experiencer, content_function
+
+
 def apply_commercial_safeguard(post: SourcePost, label: ContentFunctionLabel) -> ContentFunctionLabel:
     """Promote obvious promotional posts to C4.
 
@@ -244,6 +257,57 @@ def apply_commercial_safeguard(post: SourcePost, label: ContentFunctionLabel) ->
     return ContentFunctionLabel.C4 if brand_or_service or hashtag_promo else label
 
 
+def apply_help_seeking_safeguard(post: SourcePost, label: ContentFunctionLabel) -> ContentFunctionLabel:
+    """Promote genuine advice requests to C2 unless commercial content dominates."""
+
+    if label == ContentFunctionLabel.C4:
+        return label
+    text = post.combined_source_text
+    question_mark = "?" in text or "？" in text
+    advice_cues = [
+        "怎么办",
+        "怎么缓解",
+        "吃什么药",
+        "要不要",
+        "该不该",
+        "求助",
+        "救救",
+        "有没有人",
+        "どうしたら",
+        "どうすれば",
+        "해야",
+        "어떡",
+        "추천",
+    ]
+    rhetorical_title_cues = ["办法", "方法", "科普", "一篇说清楚", "急救办法"]
+    if any(cue in text for cue in advice_cues) and question_mark:
+        if not any(cue in post.original_title for cue in rhetorical_title_cues):
+            return ContentFunctionLabel.C2
+    return label
+
+
+def apply_generic_knowledge_experiencer_safeguard(
+    post: SourcePost,
+    experiencer: ExperiencerLabel,
+    content_function: ContentFunctionLabel,
+) -> ExperiencerLabel:
+    """Demote obvious general knowledge/commercial posts without a specific experiencer to E3."""
+
+    if experiencer == ExperiencerLabel.E2:
+        return experiencer
+    if content_function not in {ContentFunctionLabel.C3, ContentFunctionLabel.C4}:
+        return experiencer
+    text = post.combined_source_text
+    first_person_cues = ["我", "我的", "本人", "うち", "私", "僕", "俺", "나는", "제가", "내 "]
+    specific_other_cues = ["妈妈", "爸爸", "孩子", "女儿", "儿子", "娘", "旦那", "친구", "엄마", "아빠"]
+    general_cues = ["什么是", "常见病因", "症状", "护理", "治疗", "方法", "tips", "小妙招", "适用于", "建议"]
+    if any(cue in text for cue in first_person_cues + specific_other_cues):
+        return experiencer
+    if any(cue in text for cue in general_cues):
+        return ExperiencerLabel.E3
+    return experiencer
+
+
 __all__ = [
     "GenerationConfig",
     "LocalCSMExtractor",
@@ -251,6 +315,9 @@ __all__ = [
     "LocalJudge",
     "LocalR1Classifier",
     "LocalRelevanceClassifier",
+    "apply_classification_safeguards",
     "apply_commercial_safeguard",
+    "apply_generic_knowledge_experiencer_safeguard",
+    "apply_help_seeking_safeguard",
     "local_lm_for_role",
 ]
