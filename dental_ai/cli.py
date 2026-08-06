@@ -94,6 +94,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     env.set_defaults(func=_cmd_check_env)
 
+    models = subparsers.add_parser(
+        "check-models",
+        help="Check configured local model paths without loading weights.",
+    )
+    models.add_argument("--config", default="configs/model_stack.yaml", help="Model stack config")
+    models.add_argument("--models-root", default="/hdd-storage/lawrencelcty/huggingface/models")
+    models.set_defaults(func=_cmd_check_models)
+
     run = subparsers.add_parser(
         "run-hierarchical",
         help="Run hierarchical annotation. Mock backend is available before HF model integration.",
@@ -101,6 +109,9 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--input", required=True, help="Input source-post JSONL")
     run.add_argument("--out-dir", required=True, help="Output directory")
     run.add_argument("--backend", choices=("mock", "hf"), default="mock")
+    run.add_argument("--config", default="configs/model_stack.yaml", help="Model stack config")
+    run.add_argument("--models-root", default="/hdd-storage/lawrencelcty/huggingface/models")
+    run.add_argument("--hf-stage", choices=("classify", "full"), default="classify")
     run.add_argument("--limit", type=int, default=0, help="Optional max rows for smoke tests")
     run.set_defaults(func=_cmd_run_hierarchical)
 
@@ -152,6 +163,15 @@ def _cmd_check_env(args: argparse.Namespace) -> int:
     return proc.returncode
 
 
+def _cmd_check_models(args: argparse.Namespace) -> int:
+    from dental_ai.model_config import check_model_paths, load_model_stack_config
+
+    config = load_model_stack_config(args.config)
+    report = check_model_paths(config, args.models_root)
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0 if all(item["exists"] for item in report.values()) else 1
+
+
 def _cmd_run_hierarchical(args: argparse.Namespace) -> int:
     from dental_ai.run import main as run_main
 
@@ -162,6 +182,12 @@ def _cmd_run_hierarchical(args: argparse.Namespace) -> int:
         args.out_dir,
         "--backend",
         args.backend,
+        "--config",
+        args.config,
+        "--models-root",
+        args.models_root,
+        "--hf-stage",
+        args.hf_stage,
     ]
     if args.limit:
         argv.extend(["--limit", str(args.limit)])

@@ -34,11 +34,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--input", required=True, help="Input source-post JSONL")
     parser.add_argument("--out-dir", required=True, help="Output directory")
     parser.add_argument("--backend", choices=("mock", "hf"), default="mock")
+    parser.add_argument("--config", default="configs/model_stack.yaml", help="Model stack config")
+    parser.add_argument("--models-root", default="/hdd-storage/lawrencelcty/huggingface/models")
     parser.add_argument("--limit", type=int, default=0, help="Optional max rows for smoke tests")
+    parser.add_argument(
+        "--hf-stage",
+        choices=("classify", "full"),
+        default="classify",
+        help="HF backend stage. 'classify' avoids loading extractor/judge.",
+    )
     args = parser.parse_args(argv)
-
-    if args.backend != "mock":
-        raise SystemExit("HF backend is not implemented yet. Use --backend mock for smoke tests.")
 
     posts = read_posts_jsonl(args.input)
     if args.limit:
@@ -47,8 +52,10 @@ def main(argv: list[str] | None = None) -> int:
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    annotator = _mock_annotator()
-    outputs = [annotator.annotate_post(post) for post in posts]
+    if args.backend == "mock":
+        outputs = [_mock_annotator().annotate_post(post) for post in posts]
+    else:
+        outputs = _run_hf(posts, config_path=args.config, models_root=args.models_root, stage=args.hf_stage)
     results = [output.result for output in outputs]
 
     write_extractions_jsonl(results, out_dir / "annotations.jsonl")
@@ -64,6 +71,41 @@ def _mock_annotator() -> HierarchicalAnnotator:
         retriever=_MockRetriever(),
         judge=_MockJudge(),
     )
+
+
+def _run_hf(posts: list[SourcePost], *, config_path: str, models_root: str, stage: str):
+    if stage != "classify":
+        raise SystemExit("HF full extraction backend is not implemented yet. Use --hf-stage classify.")
+
+    from dental_ai.local_models import LocalR1Classifier, LocalRelevanceClassifier, local_lm_for_role
+    from dental_ai.model_config import load_model_stack_config
+    from dental_ai.pipeline import PipelineOutput, PipelineTrace
+    from dental_ai.validate import validate_hierarchical_result
+
+    stack = load_model_stack_config(config_path)
+    classifier_lm = local_lm_for_role(stack, "classifier", models_root=models_root)
+    relevance = LocalRelevanceClassifier(classifier_lm)
+    r1 = LocalR1Classifier(classifier_lm)
+    outputs = []
+    try:
+        for post in posts:
+            stages = ["relevance"]
+            relevance_label = relevance.classify_relevance(post)
+            result = ExtractionResult.empty_for_post(post).model_copy(update={"relevance_label": relevance_label})
+            if relevance_label == RelevanceLabel.R1:
+                experiencer, content_function = r1.classify_r1(post)
+                stages.append("r1_classification")
+                result = result.model_copy(
+                    update={
+                        "experiencer_label": experiencer,
+                        "content_function": content_function,
+                    }
+                )
+            validation = validate_hierarchical_result(result, post)
+            outputs.append(PipelineOutput(result=result, trace=PipelineTrace(stages=stages, validation=validation)))
+    finally:
+        classifier_lm.close()
+    return outputs
 
 
 class _MockRelevance:

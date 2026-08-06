@@ -107,9 +107,28 @@ PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
   --limit 10
 ```
 
+Check local model folders without loading weights:
+
+```bash
+PYTHONPATH=. python -m dental_ai.cli check-models \
+  --models-root /hdd-storage/lawrencelcty/huggingface/models
+```
+
+Run a tiny local-HF classification smoke test:
+
+```bash
+PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
+  --input data/raw_eval_holdout_150.jsonl \
+  --out-dir outputs/hf_classify_smoke \
+  --backend hf \
+  --hf-stage classify \
+  --models-root /hdd-storage/lawrencelcty/huggingface/models \
+  --limit 3
+```
+
 ## Current Status
 
-The production Hugging Face backend is not implemented yet. The current runner
-supports `--backend mock` to verify IO, hierarchy, validation, and output
-manifests without model downloads. Real model wrappers should be added behind
-the existing pipeline interfaces.
+The Hugging Face backend currently supports the classification stage only:
+relevance plus R1 experiencer/content-function labels. Full CSM extraction,
+RAG retrieval, and judge execution are intentionally staged separately because
+the target machine should load one LLM at a time.
