@@ -128,9 +128,38 @@ PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
   --limit 3
 ```
 
+Run a tiny full RAG extraction + judge smoke test:
+
+```bash
+PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
+  --input data/raw_eval_holdout_150_no_gold.jsonl \
+  --out-dir outputs/hf_full_smoke \
+  --backend hf \
+  --hf-stage full \
+  --models-root /hdd-storage/lawrencelcty/huggingface/models \
+  --limit 3
+```
+
+Full-stage outputs:
+
+- `annotations.jsonl`: final post-level labels and CSM units
+- `retrieval_trace.jsonl`: retrieved CSM gold examples per extracted post
+- `errors.jsonl`: row-level failures without aborting the full batch
+- `run_manifest.json`: attempted/succeeded/failed row counts
+
+Run the leak-checked main automation corpus:
+
+```bash
+PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
+  --input data/raw_main_llm_input_no_gold.jsonl \
+  --out-dir outputs/main_full_run \
+  --backend hf \
+  --hf-stage full \
+  --models-root /hdd-storage/lawrencelcty/huggingface/models
+```
+
 ## Current Status
 
-The Hugging Face backend currently supports the classification stage only:
-relevance plus R1 experiencer/content-function labels. Full CSM extraction,
-RAG retrieval, and judge execution are intentionally staged separately because
-the target machine should load one LLM at a time.
+The Hugging Face backend supports staged classification and full local
+classification + CSM RAG extraction + LLM-as-Judge. Full mode loads one LLM
+role at a time: classifier, then extractor, then judge.

@@ -53,13 +53,15 @@ def main(argv: list[str] | None = None) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     annotations_path = out_dir / "annotations.jsonl"
     errors_path = out_dir / "errors.jsonl"
+    retrieval_trace_path = out_dir / "retrieval_trace.jsonl"
     annotations_path.write_text("", encoding="utf-8")
     errors_path.write_text("", encoding="utf-8")
+    retrieval_trace_path.write_text("", encoding="utf-8")
 
     with annotations_path.open("a", encoding="utf-8") as annotations_file, errors_path.open(
         "a",
         encoding="utf-8",
-    ) as errors_file:
+    ) as errors_file, retrieval_trace_path.open("a", encoding="utf-8") as retrieval_trace_file:
         if args.backend == "mock":
             outputs, errors = _run_mock(posts, annotations_file=annotations_file, errors_file=errors_file)
         else:
@@ -70,6 +72,7 @@ def main(argv: list[str] | None = None) -> int:
                 stage=args.hf_stage,
                 annotations_file=annotations_file,
                 errors_file=errors_file,
+                retrieval_trace_file=retrieval_trace_file,
             )
 
     _write_manifest(
@@ -77,6 +80,7 @@ def main(argv: list[str] | None = None) -> int:
         out_dir / "run_manifest.json",
         input_path=args.input,
         backend=args.backend,
+        stage=args.hf_stage if args.backend == "hf" else "mock",
         attempted=len(posts),
         errors=errors,
     )
@@ -117,14 +121,19 @@ def _run_hf(
     stage: str,
     annotations_file: TextIO,
     errors_file: TextIO,
+    retrieval_trace_file: TextIO,
 ):
-    if stage != "classify":
-        raise SystemExit("HF full extraction backend is not implemented yet. Use --hf-stage classify.")
-
     from dental_ai.classification_gold import load_classification_gold_jsonl
-    from dental_ai.local_models import LocalR1Classifier, LocalRelevanceClassifier, local_lm_for_role
+    from dental_ai.local_models import (
+        LocalCSMExtractor,
+        LocalJudge,
+        LocalR1Classifier,
+        LocalRelevanceClassifier,
+        local_lm_for_role,
+    )
     from dental_ai.model_config import load_model_stack_config
-    from dental_ai.pipeline import PipelineOutput, PipelineTrace
+    from dental_ai.pipeline import PipelineConfig, PipelineOutput, PipelineTrace
+    from dental_ai.rag import GoldRAGRetriever, retrieval_trace_rows
     from dental_ai.validate import validate_hierarchical_result
 
     stack = load_model_stack_config(config_path)
@@ -163,14 +172,91 @@ def _run_hf(
                 validation = validate_hierarchical_result(result, post)
                 output = PipelineOutput(result=result, trace=PipelineTrace(stages=stages, validation=validation))
                 outputs.append(output)
-                _write_result_line(annotations_file, output.result)
+                if stage == "classify":
+                    _write_result_line(annotations_file, output.result)
             except Exception as exc:
                 error = _error_record(post, index=index, stage=current_stage, exc=exc)
                 errors.append(error)
                 _write_jsonl_line(errors_file, error)
     finally:
         classifier_lm.close()
-    return outputs, errors
+
+    if stage == "classify":
+        return outputs, errors
+    if stage != "full":
+        raise SystemExit(f"Unsupported HF stage: {stage}")
+
+    output_by_post_id = {output.result.post_id: output for output in outputs}
+    rag_k = int(stack.runtime.get("default_rag_k", 5))
+    config = PipelineConfig(
+        extract_proxy_csm=bool(stack.runtime.get("extract_proxy_csm", True)),
+        rag_k=rag_k,
+    )
+    retriever = GoldRAGRetriever.from_config(stack, models_root=models_root)
+
+    extractor_lm = local_lm_for_role(stack, "extractor", models_root=models_root)
+    extractor = LocalCSMExtractor(extractor_lm)
+    try:
+        for index, post in enumerate(_progress(posts, desc="hf-extract"), start=1):
+            output = output_by_post_id.get(post.post_id)
+            if output is None:
+                continue
+            result = output.result
+            if not _should_extract_csm_result(result, config):
+                continue
+            current_stage = "rag_retrieval"
+            try:
+                retrieved = retriever.retrieve_with_scores(post, k=config.rag_k)
+                for trace_row in retrieval_trace_rows(post, retrieved):
+                    _write_jsonl_line(retrieval_trace_file, trace_row)
+                current_stage = "csm_extraction"
+                extracted = extractor.extract_csm(post, [item.result for item in retrieved])
+                extracted = ExtractionResult.empty_for_post(post).model_copy(
+                    update={
+                        "units": extracted.units,
+                        "relevance_label": result.relevance_label,
+                        "experiencer_label": result.experiencer_label,
+                        "content_function": result.content_function,
+                    }
+                ).with_assigned_unit_ids()
+                validation = validate_hierarchical_result(extracted, post)
+                stages = output.trace.stages + ["rag_retrieval", "csm_extraction"]
+                output_by_post_id[post.post_id] = PipelineOutput(
+                    result=extracted,
+                    trace=PipelineTrace(stages=stages, validation=validation),
+                )
+            except Exception as exc:
+                error = _error_record(post, index=index, stage=current_stage, exc=exc)
+                errors.append(error)
+                _write_jsonl_line(errors_file, error)
+    finally:
+        extractor_lm.close()
+
+    judge_lm = local_lm_for_role(stack, "judge", models_root=models_root)
+    judge = LocalJudge(judge_lm)
+    try:
+        for index, post in enumerate(_progress(posts, desc="hf-judge"), start=1):
+            output = output_by_post_id.get(post.post_id)
+            if output is None or not output.result.units:
+                continue
+            try:
+                judged = judge.judge(post, output.result)
+                validation = validate_hierarchical_result(judged, post)
+                output_by_post_id[post.post_id] = PipelineOutput(
+                    result=judged,
+                    trace=PipelineTrace(stages=output.trace.stages + ["judge"], validation=validation),
+                )
+            except Exception as exc:
+                error = _error_record(post, index=index, stage="judge", exc=exc)
+                errors.append(error)
+                _write_jsonl_line(errors_file, error)
+    finally:
+        judge_lm.close()
+
+    final_outputs = [output_by_post_id[post.post_id] for post in posts if post.post_id in output_by_post_id]
+    for output in final_outputs:
+        _write_result_line(annotations_file, output.result)
+    return final_outputs, errors
 
 
 class _MockRelevance:
@@ -268,6 +354,7 @@ def _write_manifest(
     *,
     input_path: str,
     backend: str,
+    stage: str,
     attempted: int,
     errors: list[dict[str, Any]],
 ) -> None:
@@ -275,6 +362,7 @@ def _write_manifest(
     manifest = {
         "input": input_path,
         "backend": backend,
+        "stage": stage,
         "rows_attempted": attempted,
         "rows": len(output_list),
         "rows_succeeded": len(output_list),
@@ -284,6 +372,16 @@ def _write_manifest(
         "validation_failed": sum(1 for output in output_list if not output.trace.validation.ok),
     }
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _should_extract_csm_result(result: ExtractionResult, config: object) -> bool:
+    if result.relevance_label != RelevanceLabel.R1:
+        return False
+    if result.content_function not in {ContentFunctionLabel.C1, ContentFunctionLabel.C2}:
+        return False
+    if result.experiencer_label == ExperiencerLabel.E1:
+        return True
+    return bool(getattr(config, "extract_proxy_csm", True)) and result.experiencer_label == ExperiencerLabel.E2
 
 
 if __name__ == "__main__":
