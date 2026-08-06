@@ -289,7 +289,7 @@ class LocalJudge:
             },
             GenerationConfig(max_new_tokens=768),
         )
-        payload = _extract_json_object(text)
+        payload = _extract_judge_verdict_payload(text)
         return apply_judge_verdict_payload(result, payload)
 
 
@@ -324,6 +324,40 @@ def apply_judge_verdict_payload(result: ExtractionResult, payload: dict[str, Any
         for unit in result.units
     ]
     return result.model_copy(update={"units": units})
+
+
+def _extract_judge_verdict_payload(text: str) -> dict[str, Any]:
+    """Extract compact judge verdicts from strict or mildly malformed JSON."""
+
+    try:
+        return _extract_json_object(text)
+    except json.JSONDecodeError:
+        recovered = _recover_judge_verdicts(text)
+        if recovered:
+            return {"unit_verdicts": recovered}
+        raise
+
+
+def _recover_judge_verdicts(text: str) -> list[dict[str, str]]:
+    unit_matches = list(re.finditer(r'"unit_id"\s*:\s*"([^"]+)"', text))
+    recovered = []
+    for index, match in enumerate(unit_matches):
+        start = match.start()
+        end = unit_matches[index + 1].start() if index + 1 < len(unit_matches) else min(len(text), start + 1200)
+        window = text[start:end]
+        verdict_match = re.search(
+            r'"judge_verdict"\s*:\s*"(accept|revise|reject|needs_human_review)"',
+            window,
+        )
+        if not verdict_match:
+            continue
+        recovered.append(
+            {
+                "unit_id": match.group(1),
+                "judge_verdict": verdict_match.group(1),
+            }
+        )
+    return recovered
 
 
 def _judge_units_payload(result: ExtractionResult) -> list[dict[str, Any]]:

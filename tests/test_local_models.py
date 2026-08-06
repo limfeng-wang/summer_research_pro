@@ -1,5 +1,6 @@
 from dental_ai.local_models import (
     _extract_label_payload,
+    _extract_judge_verdict_payload,
     apply_judge_verdict_payload,
     apply_classification_safeguards,
     apply_commercial_safeguard,
@@ -135,6 +136,45 @@ def test_compact_judge_payload_keeps_missing_units_for_human_review():
     judged = apply_judge_verdict_payload(result, {"unit_verdicts": []})
 
     assert judged.units[0].judge_verdict == JudgeVerdict.NEEDS_HUMAN_REVIEW
+
+
+def test_judge_payload_recovers_verdicts_from_missing_comma_json():
+    text = """
+{
+  "unit_verdicts": [
+    {
+      "unit_id": "p1_u001",
+      "judge_verdict": "reject",
+      "reason": "admin cost"
+    }
+    {
+      "unit_id": "p1_u002",
+      "judge_verdict": "accept",
+      "reason": "supported pain management"
+    }
+  ]
+}
+"""
+
+    payload = _extract_judge_verdict_payload(text)
+
+    assert payload == {
+        "unit_verdicts": [
+            {"unit_id": "p1_u001", "judge_verdict": "reject"},
+            {"unit_id": "p1_u002", "judge_verdict": "accept"},
+        ]
+    }
+
+
+def test_judge_payload_does_not_recover_without_verdicts():
+    text = '{"unit_verdicts": [{"unit_id": "p1_u001", "reason": "missing verdict"}'
+
+    try:
+        _extract_judge_verdict_payload(text)
+    except Exception as exc:
+        assert type(exc).__name__ == "JSONDecodeError"
+    else:
+        raise AssertionError("expected malformed judge output without verdicts to fail")
 
 
 def test_commercial_safeguard_promotes_product_advertorial_to_c4():
