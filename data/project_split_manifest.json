@@ -1,0 +1,961 @@
+{
+  "classification_gold_xlsx": "data/三语分类金标准-Law.xlsx",
+  "classification_gold_jsonl": "data/classification_gold_172.jsonl",
+  "csm_gold": "data/csm_gold_50E1_10E2.json",
+  "eval_holdout_original": "data/raw_eval_holdout_150_no_gold.jsonl",
+  "eval_holdout_no_gold": "data/raw_eval_holdout_150_no_gold.jsonl",
+  "main_input_original": "data/raw_main_llm_input_no_gold.jsonl",
+  "main_input_no_gold": "data/raw_main_llm_input_no_gold.jsonl",
+  "classification_gold": {
+    "posts": 172,
+    "countries": {
+      "CHI": 59,
+      "JPN": 60,
+      "KOR": 53
+    },
+    "languages": {
+      "zh": 59,
+      "ja": 60,
+      "ko": 53
+    },
+    "experiencer_labels": {
+      "E1": 86,
+      "E3": 51,
+      "E2": 35
+    },
+    "content_functions": {
+      "C1": 39,
+      "C2": 33,
+      "C3": 36,
+      "C4": 26,
+      "C5": 38
+    },
+    "sheets": {
+      "中文": 59,
+      "日文": 60,
+      "韩文": 53
+    }
+  },
+  "csm_gold_posts": 60,
+  "eval_holdout_original_rows": 150,
+  "eval_holdout_no_gold_rows": 150,
+  "eval_replacements": [],
+  "raw_pool_rows": 36663,
+  "main_original_rows": 36513,
+  "main_no_gold_rows": 36513,
+  "main_excluded_rows": 150,
+  "main_exclusion_reasons": {
+    "eval_holdout_fingerprint": 150,
+    "eval_holdout_id": 150
+  },
+  "excluded_main_rows": [
+    {
+      "post_id": "CHI_67077da1000000002c02f22f",
+      "country": "CHI",
+      "canonical_id": "67077da1000000002c02f22f",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6707d547000000001a023835",
+      "country": "CHI",
+      "canonical_id": "6707d547000000001a023835",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_67205429000000003c01b234",
+      "country": "CHI",
+      "canonical_id": "67205429000000003c01b234",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_685cdb8e000000001c033802",
+      "country": "CHI",
+      "canonical_id": "685cdb8e000000001c033802",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6870dcd10000000020019506",
+      "country": "CHI",
+      "canonical_id": "6870dcd10000000020019506",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6889ab3e000000002302f46d",
+      "country": "CHI",
+      "canonical_id": "6889ab3e000000002302f46d",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_68c3e149000000001d028482",
+      "country": "CHI",
+      "canonical_id": "68c3e149000000001d028482",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_68c9123e000000001300da64",
+      "country": "CHI",
+      "canonical_id": "68c9123e000000001300da64",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_68d3b894000000001203218a",
+      "country": "CHI",
+      "canonical_id": "68d3b894000000001203218a",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_68edc3200000000004004ee7",
+      "country": "CHI",
+      "canonical_id": "68edc3200000000004004ee7",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_695346d2000000001e017ed6",
+      "country": "CHI",
+      "canonical_id": "695346d2000000001e017ed6",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_696a07f9000000001a025b80",
+      "country": "CHI",
+      "canonical_id": "696a07f9000000001a025b80",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_697dd981000000002203a112",
+      "country": "CHI",
+      "canonical_id": "697dd981000000002203a112",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_69c21367000000001f0064a6",
+      "country": "CHI",
+      "canonical_id": "69c21367000000001f0064a6",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6a1cfe08000000003503110e",
+      "country": "CHI",
+      "canonical_id": "6a1cfe08000000003503110e",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6a325cff000000000f01e2de",
+      "country": "CHI",
+      "canonical_id": "6a325cff000000000f01e2de",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_66e4ffe1000000000c01aa43",
+      "country": "CHI",
+      "canonical_id": "66e4ffe1000000000c01aa43",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_67d00adf000000002901b44a",
+      "country": "CHI",
+      "canonical_id": "67d00adf000000002901b44a",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_67e6820d000000001d026295",
+      "country": "CHI",
+      "canonical_id": "67e6820d000000001d026295",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_67e9f93a000000000f039466",
+      "country": "CHI",
+      "canonical_id": "67e9f93a000000000f039466",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6815f5ea000000000903b75e",
+      "country": "CHI",
+      "canonical_id": "6815f5ea000000000903b75e",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6853c3b700000000220301da",
+      "country": "CHI",
+      "canonical_id": "6853c3b700000000220301da",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_68770422000000001c034a9d",
+      "country": "CHI",
+      "canonical_id": "68770422000000001c034a9d",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_68774985000000000d018680",
+      "country": "CHI",
+      "canonical_id": "68774985000000000d018680",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_689323a60000000005004403",
+      "country": "CHI",
+      "canonical_id": "689323a60000000005004403",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_68b4f9df000000001c0065ea",
+      "country": "CHI",
+      "canonical_id": "68b4f9df000000001c0065ea",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_68c22cd5000000001d025922",
+      "country": "CHI",
+      "canonical_id": "68c22cd5000000001d025922",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_68e86c7a0000000007036446",
+      "country": "CHI",
+      "canonical_id": "68e86c7a0000000007036446",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_691bff8a0000000005011bd6",
+      "country": "CHI",
+      "canonical_id": "691bff8a0000000005011bd6",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_69d34ae6000000002200d4c4",
+      "country": "CHI",
+      "canonical_id": "69d34ae6000000002200d4c4",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6a1ea28300000000360181c7",
+      "country": "CHI",
+      "canonical_id": "6a1ea28300000000360181c7",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6a1fe20d0000000021023b0a",
+      "country": "CHI",
+      "canonical_id": "6a1fe20d0000000021023b0a",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6a2d0b0b000000000803052c",
+      "country": "CHI",
+      "canonical_id": "6a2d0b0b000000000803052c",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_658a55c7000000001a0284cd",
+      "country": "CHI",
+      "canonical_id": "658a55c7000000001a0284cd",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_680e4a3800000000200282e9",
+      "country": "CHI",
+      "canonical_id": "680e4a3800000000200282e9",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6811bfe2000000002300192d",
+      "country": "CHI",
+      "canonical_id": "6811bfe2000000002300192d",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_688c2a4f0000000023036ad1",
+      "country": "CHI",
+      "canonical_id": "688c2a4f0000000023036ad1",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_689173c60000000004006916",
+      "country": "CHI",
+      "canonical_id": "689173c60000000004006916",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_68d8b1d1000000000e030fac",
+      "country": "CHI",
+      "canonical_id": "68d8b1d1000000000e030fac",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_68d8fea0000000000e00e137",
+      "country": "CHI",
+      "canonical_id": "68d8fea0000000000e00e137",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_695664bb000000001f00e34a",
+      "country": "CHI",
+      "canonical_id": "695664bb000000001f00e34a",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_698412c200000000220310d5",
+      "country": "CHI",
+      "canonical_id": "698412c200000000220310d5",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_69ab78740000000026032d3e",
+      "country": "CHI",
+      "canonical_id": "69ab78740000000026032d3e",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_69b7a11900000000200395c0",
+      "country": "CHI",
+      "canonical_id": "69b7a11900000000200395c0",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_69e637a50000000021012081",
+      "country": "CHI",
+      "canonical_id": "69e637a50000000021012081",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_69fcbc7c000000002202af60",
+      "country": "CHI",
+      "canonical_id": "69fcbc7c000000002202af60",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6a22a7ac00000000350213d1",
+      "country": "CHI",
+      "canonical_id": "6a22a7ac00000000350213d1",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6a26498d000000001c025f1a",
+      "country": "CHI",
+      "canonical_id": "6a26498d000000001c025f1a",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6a366f2c000000001702e610",
+      "country": "CHI",
+      "canonical_id": "6a366f2c000000001702e610",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "CHI_6a38851200000000150247ce",
+      "country": "CHI",
+      "canonical_id": "6a38851200000000150247ce",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_10789",
+      "country": "JPN",
+      "canonical_id": "10789",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_13320",
+      "country": "JPN",
+      "canonical_id": "13320",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_13750",
+      "country": "JPN",
+      "canonical_id": "13750",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_13863",
+      "country": "JPN",
+      "canonical_id": "13863",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_15750",
+      "country": "JPN",
+      "canonical_id": "15750",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_15876",
+      "country": "JPN",
+      "canonical_id": "15876",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_16163",
+      "country": "JPN",
+      "canonical_id": "16163",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_16190",
+      "country": "JPN",
+      "canonical_id": "16190",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_17274",
+      "country": "JPN",
+      "canonical_id": "17274",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_18530",
+      "country": "JPN",
+      "canonical_id": "18530",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_19803",
+      "country": "JPN",
+      "canonical_id": "19803",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_21942",
+      "country": "JPN",
+      "canonical_id": "21942",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_22476",
+      "country": "JPN",
+      "canonical_id": "22476",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_2706",
+      "country": "JPN",
+      "canonical_id": "2706",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_3206",
+      "country": "JPN",
+      "canonical_id": "3206",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_3338",
+      "country": "JPN",
+      "canonical_id": "3338",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_10833",
+      "country": "JPN",
+      "canonical_id": "10833",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_11552",
+      "country": "JPN",
+      "canonical_id": "11552",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_12450",
+      "country": "JPN",
+      "canonical_id": "12450",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_12705",
+      "country": "JPN",
+      "canonical_id": "12705",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_13292",
+      "country": "JPN",
+      "canonical_id": "13292",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_16505",
+      "country": "JPN",
+      "canonical_id": "16505",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_1721",
+      "country": "JPN",
+      "canonical_id": "1721",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_17852",
+      "country": "JPN",
+      "canonical_id": "17852",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_185",
+      "country": "JPN",
+      "canonical_id": "185",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_22568",
+      "country": "JPN",
+      "canonical_id": "22568",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_22909",
+      "country": "JPN",
+      "canonical_id": "22909",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_23500",
+      "country": "JPN",
+      "canonical_id": "23500",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_23686",
+      "country": "JPN",
+      "canonical_id": "23686",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_24741",
+      "country": "JPN",
+      "canonical_id": "24741",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_5862",
+      "country": "JPN",
+      "canonical_id": "5862",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_7252",
+      "country": "JPN",
+      "canonical_id": "7252",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_8603",
+      "country": "JPN",
+      "canonical_id": "8603",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_11461",
+      "country": "JPN",
+      "canonical_id": "11461",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_12401",
+      "country": "JPN",
+      "canonical_id": "12401",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_15885",
+      "country": "JPN",
+      "canonical_id": "15885",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_16785",
+      "country": "JPN",
+      "canonical_id": "16785",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_17800",
+      "country": "JPN",
+      "canonical_id": "17800",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_18215",
+      "country": "JPN",
+      "canonical_id": "18215",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_19254",
+      "country": "JPN",
+      "canonical_id": "19254",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_20926",
+      "country": "JPN",
+      "canonical_id": "20926",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_22094",
+      "country": "JPN",
+      "canonical_id": "22094",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_23147",
+      "country": "JPN",
+      "canonical_id": "23147",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_2359",
+      "country": "JPN",
+      "canonical_id": "2359",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_3194",
+      "country": "JPN",
+      "canonical_id": "3194",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_4637",
+      "country": "JPN",
+      "canonical_id": "4637",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_562",
+      "country": "JPN",
+      "canonical_id": "562",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_912",
+      "country": "JPN",
+      "canonical_id": "912",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_9546",
+      "country": "JPN",
+      "canonical_id": "9546",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "JPN_9754",
+      "country": "JPN",
+      "canonical_id": "9754",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_10566",
+      "country": "KOR",
+      "canonical_id": "10566",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_10638",
+      "country": "KOR",
+      "canonical_id": "10638",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_10856",
+      "country": "KOR",
+      "canonical_id": "10856",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_3578",
+      "country": "KOR",
+      "canonical_id": "3578",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_5143",
+      "country": "KOR",
+      "canonical_id": "5143",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_5742",
+      "country": "KOR",
+      "canonical_id": "5742",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_5910",
+      "country": "KOR",
+      "canonical_id": "5910",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_6008",
+      "country": "KOR",
+      "canonical_id": "6008",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_7821",
+      "country": "KOR",
+      "canonical_id": "7821",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_8047",
+      "country": "KOR",
+      "canonical_id": "8047",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_8614",
+      "country": "KOR",
+      "canonical_id": "8614",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_8955",
+      "country": "KOR",
+      "canonical_id": "8955",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_9380",
+      "country": "KOR",
+      "canonical_id": "9380",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_9635",
+      "country": "KOR",
+      "canonical_id": "9635",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_9771",
+      "country": "KOR",
+      "canonical_id": "9771",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_9818",
+      "country": "KOR",
+      "canonical_id": "9818",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_10572",
+      "country": "KOR",
+      "canonical_id": "10572",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_11021",
+      "country": "KOR",
+      "canonical_id": "11021",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_11153",
+      "country": "KOR",
+      "canonical_id": "11153",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_3542",
+      "country": "KOR",
+      "canonical_id": "3542",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_3868",
+      "country": "KOR",
+      "canonical_id": "3868",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_5337",
+      "country": "KOR",
+      "canonical_id": "5337",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_6159",
+      "country": "KOR",
+      "canonical_id": "6159",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_6525",
+      "country": "KOR",
+      "canonical_id": "6525",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_6675",
+      "country": "KOR",
+      "canonical_id": "6675",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_6879",
+      "country": "KOR",
+      "canonical_id": "6879",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_7374",
+      "country": "KOR",
+      "canonical_id": "7374",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_8281",
+      "country": "KOR",
+      "canonical_id": "8281",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_9129",
+      "country": "KOR",
+      "canonical_id": "9129",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_9855",
+      "country": "KOR",
+      "canonical_id": "9855",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_9927",
+      "country": "KOR",
+      "canonical_id": "9927",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_9943",
+      "country": "KOR",
+      "canonical_id": "9943",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_10335",
+      "country": "KOR",
+      "canonical_id": "10335",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_10463",
+      "country": "KOR",
+      "canonical_id": "10463",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_10931",
+      "country": "KOR",
+      "canonical_id": "10931",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_10968",
+      "country": "KOR",
+      "canonical_id": "10968",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_11060",
+      "country": "KOR",
+      "canonical_id": "11060",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_11268",
+      "country": "KOR",
+      "canonical_id": "11268",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_11294",
+      "country": "KOR",
+      "canonical_id": "11294",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_11399",
+      "country": "KOR",
+      "canonical_id": "11399",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_4925",
+      "country": "KOR",
+      "canonical_id": "4925",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_5095",
+      "country": "KOR",
+      "canonical_id": "5095",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_5097",
+      "country": "KOR",
+      "canonical_id": "5097",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_6684",
+      "country": "KOR",
+      "canonical_id": "6684",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_7056",
+      "country": "KOR",
+      "canonical_id": "7056",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_7637",
+      "country": "KOR",
+      "canonical_id": "7637",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_7955",
+      "country": "KOR",
+      "canonical_id": "7955",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_8212",
+      "country": "KOR",
+      "canonical_id": "8212",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_8476",
+      "country": "KOR",
+      "canonical_id": "8476",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    },
+    {
+      "post_id": "KOR_10000",
+      "country": "KOR",
+      "canonical_id": "10000",
+      "reasons": "eval_holdout_fingerprint,eval_holdout_id"
+    }
+  ],
+  "gold_internal_overlap_allowed": {
+    "id_overlap_count": 55,
+    "fingerprint_overlap_count": 55
+  },
+  "disjointness_audit": {
+    "ok": true,
+    "overlaps": []
+  }
+}

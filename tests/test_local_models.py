@@ -2,10 +2,11 @@ from dental_ai.local_models import (
     _extract_label_payload,
     apply_classification_safeguards,
     apply_commercial_safeguard,
+    apply_relevance_safeguard,
     apply_weak_commercial_demote_safeguard,
     has_strong_commercial_evidence,
 )
-from dental_ai.schemas import ContentFunctionLabel, Country, ExperiencerLabel, Language, SourcePost
+from dental_ai.schemas import ContentFunctionLabel, Country, ExperiencerLabel, Language, RelevanceLabel, SourcePost
 
 
 def test_extract_label_payload_recovers_labels_from_truncated_json():
@@ -48,6 +49,17 @@ def test_commercial_safeguard_preserves_noncommercial_c3():
     assert apply_commercial_safeguard(post, ContentFunctionLabel.C3) == ContentFunctionLabel.C3
 
 
+def test_relevance_safeguard_demotes_oral_ulcer_only_posts():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean="口腔溃疡无痛治好。用双氧水消毒, 第二天早上就不那么痛了。",
+    )
+
+    assert apply_relevance_safeguard(post, RelevanceLabel.R1) == RelevanceLabel.R0
+
+
 def test_commercial_safeguard_requires_promotion_not_care_logistics():
     post = SourcePost(
         post_id="p1",
@@ -63,6 +75,24 @@ def test_commercial_safeguard_requires_promotion_not_care_logistics():
     assert not has_strong_commercial_evidence(post)
     assert apply_commercial_safeguard(post, ContentFunctionLabel.C1) == ContentFunctionLabel.C1
     assert apply_commercial_safeguard(post, ContentFunctionLabel.C3) == ContentFunctionLabel.C3
+
+
+def test_personal_cost_process_c3_is_corrected_to_c1():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean=(
+            "拔牙×2, 第一次手术费975, 第二次手术费1300左右。"
+            "作者本人的是阻生齿。首先关于挂号的小tips: 可以提前预约挂号。"
+            "拔牙后的注意事项: 拔完牙24h内可以冰敷一下。"
+        ),
+    )
+
+    assert apply_classification_safeguards(post, ExperiencerLabel.E1, ContentFunctionLabel.C3) == (
+        ExperiencerLabel.E1,
+        ContentFunctionLabel.C1,
+    )
 
 
 def test_weak_commercial_demote_safeguard_turns_personal_cost_post_back_to_c1():
@@ -110,6 +140,60 @@ def test_classification_safeguards_preserve_clinic_account_promotion_as_c4():
         ExperiencerLabel.E3,
         ContentFunctionLabel.C4,
     )
+
+
+def test_classification_safeguards_promote_medical_ad_license_to_c4():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean="补牙贵吗?首颗98 z250。专业补牙, 价格透明。(黔)医广(2024)第12-05-824 #补牙 #都匀牙美家",
+    )
+
+    assert apply_classification_safeguards(post, ExperiencerLabel.E3, ContentFunctionLabel.C3) == (
+        ExperiencerLabel.E3,
+        ContentFunctionLabel.C4,
+    )
+
+
+def test_classification_safeguards_do_not_treat_generic_oral_care_hashtags_as_c4():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean="保护牙齿的关键是每天刷牙、用牙线、喝完饮料漱口。#口腔护理 #牙齿护理 #刷牙误区",
+    )
+
+    assert apply_classification_safeguards(post, ExperiencerLabel.E3, ContentFunctionLabel.C4) == (
+        ExperiencerLabel.E3,
+        ContentFunctionLabel.C3,
+    )
+
+
+def test_classification_safeguards_demote_rhetorical_c2_to_c3():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        original_title="智齿分类太复杂?一张图看懂!",
+        text_clean="智齿分类太复杂?一张图看懂! 近中阻生、水平阻生、垂直阻生分别是什么。",
+    )
+
+    assert apply_classification_safeguards(post, ExperiencerLabel.E3, ContentFunctionLabel.C2) == (
+        ExperiencerLabel.E3,
+        ContentFunctionLabel.C3,
+    )
+
+
+def test_classification_safeguards_detect_specific_author_case():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean="我自己是中位近中阻生智齿, 拔的时候医生说不算复杂, 现在恢复得很顺利。",
+    )
+
+    assert apply_classification_safeguards(post, ExperiencerLabel.E3, ContentFunctionLabel.C3)[0] == ExperiencerLabel.E1
 
 
 def test_classification_safeguards_demote_general_knowledge_to_e3():

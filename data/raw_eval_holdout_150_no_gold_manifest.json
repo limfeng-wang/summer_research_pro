@@ -1,0 +1,24 @@
+{
+  "rows": 150,
+  "countries": {
+    "CHI": 50,
+    "JPN": 50,
+    "KOR": 50
+  },
+  "length_bands": {
+    "long": 48,
+    "medium": 51,
+    "short": 51
+  },
+  "country_length_bands": {
+    "CHI:long": 16,
+    "CHI:medium": 17,
+    "CHI:short": 17,
+    "JPN:long": 16,
+    "JPN:medium": 17,
+    "JPN:short": 17,
+    "KOR:long": 16,
+    "KOR:medium": 17,
+    "KOR:short": 17
+  }
+}

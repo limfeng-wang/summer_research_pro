@@ -100,8 +100,10 @@ The downloader disables the Xet backend by default through
 Run a safe mock smoke test:
 
 ```bash
+PYTHONPATH=. python -m dental_ai.cli build-splits
+
 PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
-  --input data/raw_eval_holdout_150.jsonl \
+  --input data/raw_eval_holdout_150_no_gold.jsonl \
   --out-dir outputs/smoke_test \
   --backend mock \
   --limit 10
@@ -118,7 +120,7 @@ Run a tiny local-HF classification smoke test:
 
 ```bash
 PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
-  --input data/raw_eval_holdout_150.jsonl \
+  --input data/raw_eval_holdout_150_no_gold.jsonl \
   --out-dir outputs/hf_classify_smoke \
   --backend hf \
   --hf-stage classify \

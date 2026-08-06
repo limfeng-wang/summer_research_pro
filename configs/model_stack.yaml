@@ -29,11 +29,15 @@ model_stack:
 runtime:
   load_one_llm_at_a_time: true
   default_rag_k: 5
+  classification_fewshot_k: 8
   default_working_language: zh
   source_text_authority: text_clean
 
 paths:
+  classification_gold: data/classification_gold_172.jsonl
+  classification_gold_source: data/三语分类金标准-Law.xlsx
   rag_gold: data/csm_gold_50E1_10E2.json
-  eval_holdout: data/raw_eval_holdout_150.jsonl
-  main_input: data/raw_main_llm_input_36689.jsonl
+  eval_holdout: data/raw_eval_holdout_150_no_gold.jsonl
+  main_input: data/raw_main_llm_input_no_gold.jsonl
+  split_manifest: data/project_split_manifest.json
   output_dir: outputs/hierarchical_run

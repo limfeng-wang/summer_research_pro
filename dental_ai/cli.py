@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Sequence
 
 from dental_ai.data_io import write_extractions_jsonl, write_unit_table
+from dental_ai.classification_gold import classification_gold_summary, load_classification_gold_xlsx
 from dental_ai.goldset import (
     load_csm_gold_jsons,
     primary_csm_results,
@@ -88,6 +89,36 @@ def build_parser() -> argparse.ArgumentParser:
     )
     export.set_defaults(func=_cmd_export_gold_units)
 
+    classify_gold = subparsers.add_parser(
+        "summarize-classification-gold",
+        help="Load the multilingual R/E/C classification workbook and print count summaries.",
+    )
+    classify_gold.add_argument(
+        "--xlsx",
+        default="data/三语分类金标准-Law.xlsx",
+        help="Classification gold workbook.",
+    )
+    classify_gold.add_argument(
+        "--json",
+        action="store_true",
+        help="Print summary as JSON.",
+    )
+    classify_gold.set_defaults(func=_cmd_summarize_classification_gold)
+
+    splits = subparsers.add_parser(
+        "build-splits",
+        help="Export classification gold and rebuild leak-checked eval/main splits.",
+    )
+    splits.add_argument("--classification-gold-xlsx", default="data/三语分类金标准-Law.xlsx")
+    splits.add_argument("--classification-gold-jsonl", default="data/classification_gold_172.jsonl")
+    splits.add_argument("--csm-gold", default="data/csm_gold_50E1_10E2.json")
+    splits.add_argument("--eval", default="data/raw_eval_holdout_150_no_gold.jsonl")
+    splits.add_argument("--eval-out", default="data/raw_eval_holdout_150_no_gold.jsonl")
+    splits.add_argument("--main-in", default="data/raw_main_llm_input_no_gold.jsonl")
+    splits.add_argument("--main-out", default="data/raw_main_llm_input_no_gold.jsonl")
+    splits.add_argument("--manifest", default="data/project_split_manifest.json")
+    splits.set_defaults(func=_cmd_build_splits)
+
     env = subparsers.add_parser(
         "check-env",
         help="Report local h-ramos model environment readiness without downloading model weights.",
@@ -155,6 +186,43 @@ def _cmd_export_gold_units(args: argparse.Namespace) -> int:
     _print_summary(summary)
     print(f"\nexported: {out_dir}")
     return 0
+
+
+def _cmd_summarize_classification_gold(args: argparse.Namespace) -> int:
+    records = load_classification_gold_xlsx(args.xlsx)
+    summary = classification_gold_summary(records)
+    if args.json:
+        print(json.dumps(summary, ensure_ascii=False, indent=2))
+    else:
+        for key, value in summary.items():
+            print(f"{key}: {value}")
+    return 0
+
+
+def _cmd_build_splits(args: argparse.Namespace) -> int:
+    script = Path(__file__).resolve().parents[1] / "scripts" / "build_project_splits.py"
+    argv = [
+        sys.executable,
+        str(script),
+        "--classification-gold-xlsx",
+        args.classification_gold_xlsx,
+        "--classification-gold-jsonl",
+        args.classification_gold_jsonl,
+        "--csm-gold",
+        args.csm_gold,
+        "--eval",
+        args.eval,
+        "--eval-out",
+        args.eval_out,
+        "--main-in",
+        args.main_in,
+        "--main-out",
+        args.main_out,
+        "--manifest",
+        args.manifest,
+    ]
+    proc = subprocess.run(argv, check=False)
+    return proc.returncode
 
 
 def _cmd_check_env(args: argparse.Namespace) -> int:

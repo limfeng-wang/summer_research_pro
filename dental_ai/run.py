@@ -121,6 +121,7 @@ def _run_hf(
     if stage != "classify":
         raise SystemExit("HF full extraction backend is not implemented yet. Use --hf-stage classify.")
 
+    from dental_ai.classification_gold import load_classification_gold_jsonl
     from dental_ai.local_models import LocalR1Classifier, LocalRelevanceClassifier, local_lm_for_role
     from dental_ai.model_config import load_model_stack_config
     from dental_ai.pipeline import PipelineOutput, PipelineTrace
@@ -128,8 +129,17 @@ def _run_hf(
 
     stack = load_model_stack_config(config_path)
     classifier_lm = local_lm_for_role(stack, "classifier", models_root=models_root)
+    classification_examples = []
+    classification_gold_path = stack.paths.get("classification_gold", "")
+    if classification_gold_path:
+        classification_examples = load_classification_gold_jsonl(classification_gold_path)
+    fewshot_k = int(stack.runtime.get("classification_fewshot_k", 8))
     relevance = LocalRelevanceClassifier(classifier_lm)
-    r1 = LocalR1Classifier(classifier_lm)
+    r1 = LocalR1Classifier(
+        classifier_lm,
+        classification_examples=classification_examples,
+        fewshot_k=fewshot_k,
+    )
     outputs = []
     errors = []
     try:

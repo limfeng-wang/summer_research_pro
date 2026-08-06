@@ -16,7 +16,7 @@ else
 fi
 
 PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
-  --input data/raw_eval_holdout_150.jsonl \
+  --input data/raw_eval_holdout_150_no_gold.jsonl \
   --out-dir "$OUT_DIR" \
   --backend mock \
   --limit "$SMOKE_LIMIT"

@@ -8,6 +8,10 @@ Use the original source text as authoritative. Label only relevance:
 - R0: unrelated keyword noise, unrelated reposting, hashtag stuffing, or ambiguous non-toothache use.
 - RU: relevance cannot be determined reliably from the source text.
 
+Boundary rules:
+- Oral-ulcer-only, mouth-sore-only, generic oral hygiene, cosmetic dentistry, or general dental prevention posts are R0 unless they explicitly concern tooth/gingival pain or pain-related dental care.
+- Dental procedures can be R1 when pain-related care is central: root canal, extraction, wisdom-tooth inflammation, pulpitis, dry socket, painful caries, pain relief, anesthesia, or painful recovery.
+
 Return strict JSON:
 {"relevance_label":"R1|R0|RU"}
 """
@@ -16,6 +20,10 @@ Return strict JSON:
 R1_CLASSIFICATION_PROMPT = """\
 You are applying the frozen codebook for a multilingual toothache narrative study.
 The post is already R1 toothache-relevant. Use original source text as authoritative.
+
+The user payload contains:
+- post: the target post to classify.
+- classification_gold_examples: human-adjudicated R/E/C examples from the development/few-shot gold set. Use them only to calibrate boundary decisions. Do not copy their labels unless the target post has the same function/evidence pattern.
 
 Return one experiencer label and one primary content-function label.
 Do not extract CSM units in this task.
@@ -55,10 +63,13 @@ C4 MUST override C1/C3 only when this commercial evidence is strong:
 C4 MUST NOT be used for ordinary care logistics by itself:
 - cost-sharing, hospital registration, appointment process, X-ray fee, surgery fee, insurance reimbursement, or "which department/doctor" details are NOT C4 unless a specific clinic/product/service is being promoted.
 - A personal treatment or extraction story with practical tips remains C1 when anchored in the author's own case and no commercial target is promoted.
+- Broad health hashtags alone are NOT C4: #口腔健康, #口腔护理, #牙齿护理, #刷牙, #牙齿保护计划, generic city+口腔 tags.
+- A named clinic/service/product hashtag or @account can support C4 only when paired with service/product/booking/selling/traffic evidence.
 
 C2 must be genuine help-seeking:
 - "怎么办/どうしたら/어떡해/should I..." plus a real request for advice -> C2.
 - Rhetorical question in a title followed by education/ad/promotional content is C3 or C4, not C2.
+- "一张图看懂", "指南", "攻略", "一篇说清楚", and "why/how" explainer titles are usually C3/C4, not C2, unless the author is truly asking readers for help.
 
 C3 vs C1:
 - If the post mainly tells the author's/specific person's own sequence of symptoms/actions/outcomes -> C1.

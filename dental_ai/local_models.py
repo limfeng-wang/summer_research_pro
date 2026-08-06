@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from dental_ai.classification_gold import ClassificationGoldRecord, canonical_post_id
 from dental_ai.model_config import DEFAULT_MODELS_ROOT, ModelStackConfig
 from dental_ai.prompts import CSM_EXTRACTION_PROMPT, JUDGE_PROMPT, R1_CLASSIFICATION_PROMPT, RELEVANCE_PROMPT
 from dental_ai.schemas import (
@@ -113,17 +114,32 @@ class LocalRelevanceClassifier:
             GenerationConfig(max_new_tokens=64),
         )
         payload = _extract_label_payload(text, ["relevance_label"])
-        return RelevanceLabel(payload["relevance_label"])
+        return apply_relevance_safeguard(post, RelevanceLabel(payload["relevance_label"]))
 
 
 class LocalR1Classifier:
-    def __init__(self, lm: LocalCausalLM):
+    def __init__(
+        self,
+        lm: LocalCausalLM,
+        *,
+        classification_examples: list[ClassificationGoldRecord] | None = None,
+        fewshot_k: int = 8,
+    ):
         self.lm = lm
+        self.classification_examples = classification_examples or []
+        self.fewshot_k = fewshot_k
 
     def classify_r1(self, post: SourcePost) -> tuple[ExperiencerLabel, ContentFunctionLabel]:
         text = self.lm.generate_json_text(
             R1_CLASSIFICATION_PROMPT,
-            _post_payload(post),
+            {
+                "post": _post_payload(post),
+                "classification_gold_examples": _classification_fewshot_payload(
+                    post,
+                    self.classification_examples,
+                    k=self.fewshot_k,
+                ),
+            },
             GenerationConfig(max_new_tokens=192),
         )
         payload = _extract_label_payload(text, ["experiencer_label", "content_function"])
@@ -193,6 +209,65 @@ def _post_payload(post: SourcePost) -> dict[str, Any]:
     }
 
 
+def _classification_fewshot_payload(
+    post: SourcePost,
+    examples: list[ClassificationGoldRecord],
+    *,
+    k: int,
+) -> list[dict[str, Any]]:
+    """Select compact classification gold examples without using eval/main rows."""
+
+    if not examples or k <= 0:
+        return []
+
+    post_canonical_id = canonical_post_id(post.post_id)
+    same_language = [
+        example
+        for example in examples
+        if example.language == post.language
+        and not (example.country == post.country and example.canonical_id == post_canonical_id)
+    ]
+    fallback = [
+        example
+        for example in examples
+        if example not in same_language
+        and not (example.country == post.country and example.canonical_id == post_canonical_id)
+    ]
+
+    selected: list[ClassificationGoldRecord] = []
+    seen_combos: set[tuple[ExperiencerLabel, ContentFunctionLabel]] = set()
+    for pool in [same_language, fallback]:
+        for example in pool:
+            combo = (example.experiencer_label, example.content_function)
+            if combo in seen_combos:
+                continue
+            selected.append(example)
+            seen_combos.add(combo)
+            if len(selected) >= k:
+                return [_classification_example_payload(example) for example in selected]
+        for example in pool:
+            if example in selected:
+                continue
+            selected.append(example)
+            if len(selected) >= k:
+                return [_classification_example_payload(example) for example in selected]
+
+    return [_classification_example_payload(example) for example in selected]
+
+
+def _classification_example_payload(example: ClassificationGoldRecord) -> dict[str, Any]:
+    text = example.combined_source_text
+    return {
+        "country": example.country.value,
+        "language": example.language.value,
+        "source_excerpt": text[:900],
+        "experiencer_label": example.experiencer_label.value,
+        "content_function": example.content_function.value,
+        "evidence_excerpt": example.evidence_excerpt[:500],
+        "rationale": example.rationale[:300],
+    }
+
+
 def _extract_json_object(text: str) -> dict[str, Any]:
     try:
         return json.loads(text)
@@ -235,11 +310,76 @@ def apply_classification_safeguards(
 ) -> tuple[ExperiencerLabel, ContentFunctionLabel]:
     """Apply deterministic, auditable safeguards to common boundary errors."""
 
+    experiencer = apply_specific_experiencer_safeguard(post, experiencer)
     content_function = apply_commercial_safeguard(post, content_function)
     content_function = apply_weak_commercial_demote_safeguard(post, content_function)
     content_function = apply_help_seeking_safeguard(post, content_function)
+    content_function = apply_personal_narrative_safeguard(post, experiencer, content_function)
     experiencer = apply_generic_knowledge_experiencer_safeguard(post, experiencer, content_function)
     return experiencer, content_function
+
+
+def apply_relevance_safeguard(post: SourcePost, label: RelevanceLabel) -> RelevanceLabel:
+    """Protect R1 from oral-ulcer-only and generic oral-health leakage."""
+
+    if label != RelevanceLabel.R1:
+        return label
+    return RelevanceLabel.R1 if has_toothache_relevance_evidence(post) else RelevanceLabel.R0
+
+
+def has_toothache_relevance_evidence(post: SourcePost) -> bool:
+    """Return whether the text concerns tooth/dental pain or pain-related care."""
+
+    text = post.combined_source_text
+    pain_cues = [
+        "牙疼",
+        "牙痛",
+        "牙龈肿痛",
+        "智齿痛",
+        "咬物痛",
+        "咬合痛",
+        "冷热刺激痛",
+        "自发痛",
+        "夜间痛",
+        "歯が痛",
+        "歯痛",
+        "치통",
+        "이가 아",
+    ]
+    pain_related_care_cues = [
+        "牙髓炎",
+        "根管",
+        "拔牙",
+        "拔智齿",
+        "补牙",
+        "蛀牙",
+        "龋",
+        "智齿发炎",
+        "冠周炎",
+        "干槽症",
+        "牙神经",
+        "止痛",
+        "止疼",
+        "麻醉",
+        "根尖",
+    ]
+    oral_ulcer_cues = ["口腔溃疡", "溃疡", "口内炎", "구내염"]
+    if any(cue in text for cue in oral_ulcer_cues) and not any(cue in text for cue in pain_cues + pain_related_care_cues):
+        return False
+    return any(cue in text for cue in pain_cues + pain_related_care_cues)
+
+
+def apply_specific_experiencer_safeguard(post: SourcePost, label: ExperiencerLabel) -> ExperiencerLabel:
+    """Promote missed specific experiencers when explicit case evidence exists."""
+
+    if label != ExperiencerLabel.E3:
+        return label
+    text = post.combined_source_text
+    if has_specific_other_case(text):
+        return ExperiencerLabel.E2
+    if has_specific_author_case(text):
+        return ExperiencerLabel.E1
+    return label
 
 
 def has_strong_commercial_evidence(post: SourcePost) -> bool:
@@ -258,9 +398,16 @@ def has_strong_commercial_evidence(post: SourcePost) -> bool:
         "布洛芬",
         "对乙酰氨基酚",
         "novashine",
+        "欧乐b",
+        "欧乐B",
+        "美团",
+        "喷剂",
+        "保健液",
+        "电动牙刷",
+        "磁波刷",
+        "树脂补牙",
+        "补牙615",
         "医疗器械",
-        "药",
-        "颗粒",
         "止痛药",
         "ibuprofen",
         "acetaminophen",
@@ -276,6 +423,21 @@ def has_strong_commercial_evidence(post: SourcePost) -> bool:
         "购买",
         "下单",
         "推荐",
+        "入手",
+        "抢",
+        "使用方式",
+        "味道温和",
+        "平价",
+        "好用",
+        "智能",
+        "自动",
+        "更干净",
+        "新科技",
+        "护龈",
+        "分享给大家",
+        "价格透明",
+        "无隐形消费",
+        "限指定门店",
         "trusted",
         "recommend",
     ]
@@ -285,7 +447,6 @@ def has_strong_commercial_evidence(post: SourcePost) -> bool:
         "口腔诊所",
         "口腔医院",
         "口腔医学中心",
-        "牙科",
         "치과",
         "歯科",
         "クリニック",
@@ -310,20 +471,61 @@ def has_strong_commercial_evidence(post: SourcePost) -> bool:
         "discount",
     ]
 
-    explicit_ad = any(cue in lower_text for cue in ["广告", "推广", "合作", "赞助", "ad", "sponsored", "pr"])
+    explicit_ad = any(cue in lower_text for cue in ["广告", "推广", "合作", "赞助", "医广", "ad", "sponsored", "pr"])
     product_ad = any(cue.lower() in lower_text for cue in product_targets) and any(
         cue.lower() in lower_text for cue in product_promo_stance
     )
     clinic_account_targets = clinic_targets + ["口腔"]
     clinic_account_ad = "@" in text and any(cue.lower() in lower_text for cue in clinic_account_targets)
-    clinic_conversion_ad = any(cue.lower() in lower_text for cue in clinic_targets) and any(
+    named_clinic = has_named_clinic_or_service_tag(text)
+    clinic_conversion_ad = named_clinic and any(
         cue.lower() in lower_text for cue in clinic_promo_stance
     )
+    dense_named_service_hashtags = named_clinic and text.count("#") >= 5 and any(
+        cue in text for cue in ["#看牙", "#深圳看牙", "#上海看牙", "#洁牙", "#补牙", "#种牙", "#美团医疗"]
+    )
     promo_hashtags = text.count("#") >= 3 and any(
-        cue in text for cue in ["#芬必得", "#牙痛止痛药", "#上海看牙", "#看牙", "#口腔护理", "#novashine", "#Novashine"]
+        cue in text for cue in ["#芬必得", "#牙痛止痛药", "#上海看牙", "#看牙", "#novashine", "#Novashine", "#美团医疗"]
     )
 
-    return explicit_ad or product_ad or clinic_account_ad or clinic_conversion_ad or promo_hashtags
+    return explicit_ad or product_ad or clinic_account_ad or clinic_conversion_ad or dense_named_service_hashtags or promo_hashtags
+
+
+def has_named_clinic_or_service_tag(text: str) -> bool:
+    """Detect named clinic/service promotion without broad health hashtag leakage."""
+
+    broad_tags = {
+        "口腔健康",
+        "口腔护理",
+        "口腔管理",
+        "口腔清洁",
+        "口腔健康科普",
+        "牙齿护理",
+        "牙齿修复攻略",
+        "牙齿保护计划",
+        "天然牙保护",
+        "公立私立牙科",
+        "儿童口腔",
+        "口腔日常护理",
+        "口腔",
+        "成都口腔",
+        "口腔挂号攻略",
+        "看牙医",
+        "口腔医学生",
+        "医生日常",
+    }
+    for tag in re.findall(r"[#@]([^#@\s]+)", text):
+        normalized = tag.strip()
+        if normalized in broad_tags:
+            continue
+        if "口腔" in normalized:
+            prefix = normalized.split("口腔", 1)[0]
+            if len(prefix) >= 3:
+                return True
+            continue
+        if any(cue in normalized for cue in ["牙美家", "牙科", "歯科", "치과", "clinic", "dental"]):
+            return True
+    return False
 
 
 def apply_commercial_safeguard(post: SourcePost, label: ContentFunctionLabel) -> ContentFunctionLabel:
@@ -346,9 +548,22 @@ def apply_weak_commercial_demote_safeguard(post: SourcePost, label: ContentFunct
         return label
 
     text = post.combined_source_text
-    first_person_cues = ["我", "我的", "本人", "作者本人", "第一次", "第二次", "私", "僕", "俺", "나는", "제가", "내 "]
+    first_person_cues = ["我", "我的", "本人", "作者本人", "第一次", "第二次", "나는", "제가", "내 "]
     care_logistics_cues = ["挂号", "签到", "拍片", "缴费", "手术费", "医保", "报销", "麻醉", "拔完", "拔牙后", "价格"]
-    general_knowledge_cues = ["什么是", "常见病因", "症状", "护理", "治疗", "方法", "适用于", "建议"]
+    general_knowledge_cues = [
+        "什么是",
+        "常见病因",
+        "症状",
+        "护理",
+        "治疗",
+        "方法",
+        "适用于",
+        "建议",
+        "预防",
+        "保护牙齿",
+        "刷牙",
+        "牙线",
+    ]
 
     if any(cue in text for cue in first_person_cues) and any(cue in text for cue in care_logistics_cues):
         return ContentFunctionLabel.C1
@@ -358,7 +573,7 @@ def apply_weak_commercial_demote_safeguard(post: SourcePost, label: ContentFunct
 
 
 def apply_help_seeking_safeguard(post: SourcePost, label: ContentFunctionLabel) -> ContentFunctionLabel:
-    """Promote genuine advice requests to C2 unless commercial content dominates."""
+    """Promote genuine advice requests to C2 and demote rhetorical C2."""
 
     if label == ContentFunctionLabel.C4:
         return label
@@ -379,10 +594,33 @@ def apply_help_seeking_safeguard(post: SourcePost, label: ContentFunctionLabel) 
         "어떡",
         "추천",
     ]
-    rhetorical_title_cues = ["办法", "方法", "科普", "一篇说清楚", "急救办法"]
-    if any(cue in text for cue in advice_cues) and question_mark:
-        if not any(cue in post.original_title for cue in rhetorical_title_cues):
-            return ContentFunctionLabel.C2
+    rhetorical_title_cues = ["办法", "方法", "科普", "一篇说清楚", "急救办法", "一张图看懂", "指南", "攻略"]
+    genuine_request = any(cue in text for cue in advice_cues) and question_mark and not any(
+        cue in post.original_title for cue in rhetorical_title_cues
+    )
+    if genuine_request:
+        return ContentFunctionLabel.C2
+    if label == ContentFunctionLabel.C2:
+        return ContentFunctionLabel.C3
+    return label
+
+
+def apply_personal_narrative_safeguard(
+    post: SourcePost,
+    experiencer: ExperiencerLabel,
+    label: ContentFunctionLabel,
+) -> ContentFunctionLabel:
+    """Keep personal treatment/cost/process accounts in C1 unless promotional."""
+
+    if label != ContentFunctionLabel.C3 or experiencer not in {ExperiencerLabel.E1, ExperiencerLabel.E2}:
+        return label
+    if has_strong_commercial_evidence(post):
+        return ContentFunctionLabel.C4
+    text = post.combined_source_text
+    logistics = ["挂号", "签到", "拍片", "缴费", "手术费", "医保", "报销", "麻醉", "拔完", "拔牙后", "总共", "费用"]
+    narrative = ["经历", "经验", "全程", "第一次", "第二次", "我去", "我上周", "前段时间我", "作者本人"]
+    if any(cue in text for cue in logistics) and any(cue in text for cue in narrative):
+        return ContentFunctionLabel.C1
     return label
 
 
@@ -408,6 +646,50 @@ def apply_generic_knowledge_experiencer_safeguard(
     return experiencer
 
 
+def has_specific_author_case(text: str) -> bool:
+    """Detect explicit first-person illness/dental-care events."""
+
+    author_case_cues = [
+        "我自己",
+        "本人",
+        "作者本人",
+        "我上周",
+        "我去",
+        "我真的",
+        "我坚持",
+        "前段时间我",
+        "根据我从小到大",
+        "나는",
+        "제가",
+        "내 ",
+    ]
+    event_cues = [
+        "牙疼",
+        "牙痛",
+        "牙龈",
+        "智齿",
+        "拔",
+        "补牙",
+        "根管",
+        "发炎",
+        "恢复",
+        "治疗",
+        "检查",
+        "复查",
+        "疼",
+        "痛",
+    ]
+    return any(cue in text for cue in author_case_cues) and any(cue in text for cue in event_cues)
+
+
+def has_specific_other_case(text: str) -> bool:
+    """Detect explicit proxy experiencers."""
+
+    other_cues = ["我妈", "我爸", "妈妈", "爸爸", "女儿", "儿子", "我家孩子", "家人牙", "朋友牙", "娘", "旦那", "친구", "엄마", "아빠"]
+    event_cues = ["牙疼", "牙痛", "牙龈", "智齿", "拔", "补牙", "根管", "发炎", "疼", "痛"]
+    return any(cue in text for cue in other_cues) and any(cue in text for cue in event_cues)
+
+
 __all__ = [
     "GenerationConfig",
     "LocalCSMExtractor",
@@ -415,11 +697,16 @@ __all__ = [
     "LocalJudge",
     "LocalR1Classifier",
     "LocalRelevanceClassifier",
+    "apply_relevance_safeguard",
     "apply_classification_safeguards",
     "apply_commercial_safeguard",
     "apply_generic_knowledge_experiencer_safeguard",
     "apply_help_seeking_safeguard",
+    "apply_personal_narrative_safeguard",
+    "apply_specific_experiencer_safeguard",
     "apply_weak_commercial_demote_safeguard",
+    "has_named_clinic_or_service_tag",
     "has_strong_commercial_evidence",
+    "has_toothache_relevance_evidence",
     "local_lm_for_role",
 ]
