@@ -5,8 +5,23 @@ from dental_ai.local_models import (
     apply_relevance_safeguard,
     apply_weak_commercial_demote_safeguard,
     has_strong_commercial_evidence,
+    mark_units_needing_human_review,
 )
-from dental_ai.schemas import ContentFunctionLabel, Country, ExperiencerLabel, Language, RelevanceLabel, SourcePost
+from dental_ai.schemas import (
+    AssertionStatus,
+    CSMDomain,
+    ConceptStatus,
+    ContentFunctionLabel,
+    Country,
+    ExperiencerLabel,
+    ExtractionResult,
+    JudgeVerdict,
+    Language,
+    NarrativeUnit,
+    RelevanceLabel,
+    SourcePost,
+    SupportType,
+)
 
 
 def test_extract_label_payload_recovers_labels_from_truncated_json():
@@ -22,6 +37,31 @@ def test_extract_label_payload_recovers_labels_from_truncated_json():
         "experiencer_label": "E3",
         "content_function": "C3",
     }
+
+
+def test_extractor_units_are_reset_to_needs_human_review_before_judge():
+    result = ExtractionResult(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        units=[
+            NarrativeUnit(
+                domain=CSMDomain.SYMPTOM_DESCRIPTION,
+                evidence_span_original="牙疼",
+                surface_text_working="牙疼",
+                normalized_concept_en="Tooth pain",
+                concept_status=ConceptStatus.NEW_CANDIDATE,
+                support_type=SupportType.EXPLICIT,
+                assertion=AssertionStatus.PRESENT,
+                confidence=0.9,
+                judge_verdict=JudgeVerdict.ACCEPT,
+            )
+        ],
+    )
+
+    sanitized = mark_units_needing_human_review(result)
+
+    assert sanitized.units[0].judge_verdict == JudgeVerdict.NEEDS_HUMAN_REVIEW
 
 
 def test_commercial_safeguard_promotes_product_advertorial_to_c4():

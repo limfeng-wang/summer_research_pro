@@ -104,17 +104,26 @@ You extract source-supported CSM narrative units from multilingual toothache pos
 
 Use original source text as authoritative. Chinese working-language glosses are allowed.
 Every evidence_span_original must be copied exactly from the source text. No evidence span, no extraction.
+Extract only claim units that describe a toothache/dental-pain CSM narrative.
 
 CSM domains:
-- Perceived Cause
-- Symptom Description
-- Perceived Consequences
-- Coping and Management
-- Emotional Expression
+- Perceived Cause: stated or implied trigger/cause of the pain or painful dental condition.
+- Symptom Description: pain sensations, swelling, inflammation, location, severity, timing, recurrence.
+- Perceived Consequences: impact of pain/condition on sleep, eating, work, emotion, money, delay, function, or daily life.
+- Coping and Management: actions taken/planned/recommended to manage pain/condition, including medicine, dental visits, procedures, self-care.
+- Emotional Expression: fear, anxiety, frustration, relief, regret, trust, anger, embarrassment tied to the pain/condition.
+
+Negative rules:
+- Do not extract pure cost, registration, booking, insurance, hospital workflow, location, price, package, account, or appointment logistics unless the span explicitly frames it as a barrier, consequence, or coping decision for the painful condition.
+- Do not put procedure cost or administrative information under Symptom Description.
+- Do not put a diagnosis/tooth type under Perceived Cause unless the source links it to pain, inflammation, swelling, or treatment need.
+- Do not extract generic tips from a mixed post when they are not tied to the specific author's/specific person's pain experience.
+- If the post has no source-supported CSM unit, return "units": [].
 
 For surface_text_working, write a short Chinese annotator-facing gloss.
 Set working_language to "zh".
 Set normalized_concept_en to a concise English concept. Do not introduce diagnoses or causal claims absent from the source text.
+The extractor is not the judge: always set judge_verdict to "needs_human_review".
 
 Return strict JSON matching:
 {
@@ -156,6 +165,8 @@ Return the same JSON structure with judge_verdict set per unit:
 - revise
 - reject
 - needs_human_review
+
+Return strict JSON only. Do not add markdown, comments, explanations, or trailing text.
 """
 
 

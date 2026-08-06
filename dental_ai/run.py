@@ -363,14 +363,23 @@ def _write_manifest(
     errors: list[dict[str, Any]],
 ) -> None:
     output_list = list(outputs)
+    completed_post_ids = {
+        getattr(getattr(output, "result", None), "post_id", "")
+        for output in output_list
+    }
+    completed_post_ids.discard("")
+    error_post_ids = {str(error.get("post_id", "")) for error in errors if error.get("post_id")}
     manifest = {
         "input": input_path,
         "backend": backend,
         "stage": stage,
         "rows_attempted": attempted,
         "rows": len(output_list),
+        "rows_completed": len(output_list),
         "rows_succeeded": len(output_list),
-        "rows_failed": len(errors),
+        "rows_failed": max(attempted - len(completed_post_ids), 0),
+        "stage_errors": len(errors),
+        "rows_with_stage_errors": len(error_post_ids),
         "errors_path": "errors.jsonl",
         "validation_ok": sum(1 for output in output_list if output.trace.validation.ok),
         "validation_failed": sum(1 for output in output_list if not output.trace.validation.ok),

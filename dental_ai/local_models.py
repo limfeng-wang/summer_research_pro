@@ -16,6 +16,7 @@ from dental_ai.schemas import (
     ContentFunctionLabel,
     ExperiencerLabel,
     ExtractionResult,
+    JudgeVerdict,
     RelevanceLabel,
     SourcePost,
 )
@@ -162,7 +163,8 @@ class LocalCSMExtractor:
             GenerationConfig(max_new_tokens=2048),
         )
         payload = _extract_json_object(text)
-        return ExtractionResult.model_validate(payload)
+        result = ExtractionResult.model_validate(payload)
+        return mark_units_needing_human_review(result)
 
 
 class LocalJudge:
@@ -180,6 +182,16 @@ class LocalJudge:
         )
         payload = _extract_json_object(text)
         return ExtractionResult.model_validate(payload)
+
+
+def mark_units_needing_human_review(result: ExtractionResult) -> ExtractionResult:
+    """Ensure extractor-only units are not counted as judge-accepted units."""
+
+    units = [
+        unit.model_copy(update={"judge_verdict": JudgeVerdict.NEEDS_HUMAN_REVIEW})
+        for unit in result.units
+    ]
+    return result.model_copy(update={"units": units})
 
 
 def local_lm_for_role(
