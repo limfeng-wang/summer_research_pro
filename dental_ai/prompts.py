@@ -26,11 +26,23 @@ Assign:
 - C1: experience-sharing narrative.
 - C2: genuine question or help-seeking.
 - C3: reusable health knowledge.
-- C4: advertising or commercial content.
+- C4: advertising or commercial content. Use C4 when the primary purpose is product, brand, clinic, appointment, consultation, service, or conversion promotion, including advertorials disguised as personal experience.
 - C5: other low-information toothache-related content.
 
 Priority for content function:
 C4 > C2 > C3 > C1 > C5.
+
+C4 guidance:
+- Brand/product praise, repeated product names, purchase links, "big brand", "trusted by my family", "recommended product", or product hashtags are C4 even if the post includes a personal pain story.
+- Clinic/hospital/dentist account promotion, appointment guidance, price promotion, location/service hashtags, or "come consult/book" language are C4 if promotional intent dominates.
+- Do not label promotional content as C3 merely because it contains health knowledge.
+- Do not label promotional content as C1 merely because it is written in first person.
+
+Examples:
+- "布洛芬小绿盒快速止痛, 不愧是大品牌, #芬必得 #牙痛止痛药" -> E1 + C4.
+- "上海某口腔: 智齿冠周炎症状和治疗, #上海看牙 @上海某口腔" -> E3 + C4 if clinic/service promotion dominates; otherwise E3 + C3 if it is purely educational.
+- "牙痛怎么办? 应该去看牙医吗?" -> E1 + C2 when the author is genuinely asking for help.
+- "牙痛急救办法: 冰敷、盐水漱口、及时就医" -> E3 + C3 when no promotion or specific experiencer is present.
 
 Return strict JSON:
 {"experiencer_label":"E1|E2|E3","content_function":"C1|C2|C3|C4|C5"}

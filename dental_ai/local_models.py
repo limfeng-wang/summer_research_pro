@@ -127,7 +127,9 @@ class LocalR1Classifier:
             GenerationConfig(max_new_tokens=128),
         )
         payload = _extract_json_object(text)
-        return ExperiencerLabel(payload["experiencer_label"]), ContentFunctionLabel(payload["content_function"])
+        experiencer = ExperiencerLabel(payload["experiencer_label"])
+        content_function = ContentFunctionLabel(payload["content_function"])
+        return experiencer, apply_commercial_safeguard(post, content_function)
 
 
 class LocalCSMExtractor:
@@ -203,6 +205,45 @@ def _extract_json_object(text: str) -> dict[str, Any]:
     return json.loads(match.group(0))
 
 
+def apply_commercial_safeguard(post: SourcePost, label: ContentFunctionLabel) -> ContentFunctionLabel:
+    """Promote obvious promotional posts to C4.
+
+    This deliberately does not demote C4. It only catches strong commercial
+    signals that are common in Xiaohongshu advertorials and clinic/service
+    posts, where models often confuse C4 with C1/C3.
+    """
+
+    if label not in {ContentFunctionLabel.C1, ContentFunctionLabel.C3}:
+        return label
+    text = post.combined_source_text
+    strong_product_cues = [
+        "不愧是",
+        "大品牌",
+        "全家都很信任",
+        "外卖了",
+        "每包含有",
+        "小绿盒",
+        "口味",
+        "颗粒",
+        "#芬必得",
+        "#牙痛止痛药",
+    ]
+    clinic_cues = [
+        "预约挂号",
+        "咨询",
+        "看牙",
+        "口腔医学中心",
+        "口腔门诊",
+        "口腔医院",
+        "口腔诊所",
+        "#上海看牙",
+        "@上海",
+    ]
+    brand_or_service = any(cue in text for cue in strong_product_cues + clinic_cues)
+    hashtag_promo = text.count("#") >= 4 and any(cue in text for cue in ["品牌", "产品", "医院", "口腔", "看牙", "止痛药"])
+    return ContentFunctionLabel.C4 if brand_or_service or hashtag_promo else label
+
+
 __all__ = [
     "GenerationConfig",
     "LocalCSMExtractor",
@@ -210,5 +251,6 @@ __all__ = [
     "LocalJudge",
     "LocalR1Classifier",
     "LocalRelevanceClassifier",
+    "apply_commercial_safeguard",
     "local_lm_for_role",
 ]
