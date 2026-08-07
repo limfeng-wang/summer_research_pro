@@ -1,4 +1,5 @@
 from dental_ai.local_models import (
+    _extract_csm_payload,
     _extract_label_payload,
     _extract_json_object,
     _extract_judge_verdict_payload,
@@ -200,6 +201,67 @@ def test_json_object_parser_strips_thinking_text():
     text = '<think>reasoning that should not be parsed</think>{"unit_verdicts":[]}'
 
     assert _extract_json_object(text) == {"unit_verdicts": []}
+
+
+def test_csm_payload_recovers_units_from_missing_comma_json():
+    post = SourcePost(post_id="p1", country=Country.CHI, language=Language.ZH, text_clean="牙疼, 吃了布洛芬")
+    text = """
+{
+  "post_id": "p1",
+  "country": "CHI",
+  "language": "zh",
+  "units": [
+    {
+      "domain": "Symptom Description",
+      "evidence_span_original": "牙疼",
+      "surface_text_working": "牙疼",
+      "working_language": "zh",
+      "normalized_concept_en": "Tooth pain",
+      "concept_status": "new_candidate",
+      "support_type": "explicit",
+      "assertion": "present",
+      "temporality": "current",
+      "sentiment_or_outcome": "negative",
+      "confidence": 0.9,
+      "judge_verdict": "needs_human_review"
+    }
+    {
+      "domain": "Coping and Management",
+      "evidence_span_original": "吃了布洛芬",
+      "surface_text_working": "服用布洛芬",
+      "working_language": "zh",
+      "normalized_concept_en": "Ibuprofen use",
+      "concept_status": "new_candidate",
+      "support_type": "explicit",
+      "assertion": "present",
+      "temporality": "past",
+      "sentiment_or_outcome": "unknown",
+      "confidence": 0.8,
+      "judge_verdict": "needs_human_review"
+    }
+  ]
+}
+"""
+
+    payload = _extract_csm_payload(text, post)
+
+    assert payload["post_id"] == "p1"
+    assert [unit["domain"] for unit in payload["units"]] == [
+        "Symptom Description",
+        "Coping and Management",
+    ]
+
+
+def test_csm_payload_does_not_recover_non_unit_json_fragments():
+    post = SourcePost(post_id="p1", country=Country.CHI, language=Language.ZH, text_clean="牙疼")
+    text = '{"post_id":"p1","units":[{"domain":"Symptom Description"}'
+
+    try:
+        _extract_csm_payload(text, post)
+    except Exception as exc:
+        assert type(exc).__name__ == "JSONDecodeError"
+    else:
+        raise AssertionError("expected malformed extraction without full units to fail")
 
 
 def test_judge_payload_recovers_verdicts_from_missing_comma_json():

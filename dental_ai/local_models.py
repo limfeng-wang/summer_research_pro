@@ -285,7 +285,7 @@ class LocalCSMExtractor:
             },
             GenerationConfig(max_new_tokens=2048),
         )
-        payload = _extract_json_object(text)
+        payload = _extract_csm_payload(text, post)
         result = ExtractionResult.model_validate(payload)
         return mark_units_needing_human_review(result)
 
@@ -520,6 +520,59 @@ def _recover_judge_verdicts(text: str) -> list[dict[str, str]]:
             }
         )
     return recovered
+
+
+def _extract_csm_payload(text: str, post: SourcePost) -> dict[str, Any]:
+    """Extract CSM payload from strict or mildly malformed model JSON."""
+
+    try:
+        return _extract_json_object(text)
+    except json.JSONDecodeError:
+        recovered_units = _recover_csm_units(text)
+        if recovered_units:
+            return {
+                "post_id": post.post_id,
+                "country": post.country.value,
+                "language": post.language.value,
+                "units": recovered_units,
+            }
+        raise
+
+
+def _recover_csm_units(text: str) -> list[dict[str, Any]]:
+    text = _strip_thinking_text(text)
+    unit_payloads = []
+    for obj in _iter_json_objects(text):
+        if _looks_like_csm_unit(obj):
+            unit_payloads.append(obj)
+    return unit_payloads
+
+
+def _iter_json_objects(text: str) -> list[dict[str, Any]]:
+    decoder = json.JSONDecoder()
+    objects = []
+    for start in [match.start() for match in re.finditer(r"\{", text)]:
+        try:
+            obj, _ = decoder.raw_decode(text[start:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, dict):
+            objects.append(obj)
+    return objects
+
+
+def _looks_like_csm_unit(obj: dict[str, Any]) -> bool:
+    required_keys = {
+        "domain",
+        "evidence_span_original",
+        "surface_text_working",
+        "normalized_concept_en",
+        "concept_status",
+        "support_type",
+        "assertion",
+        "confidence",
+    }
+    return required_keys.issubset(obj)
 
 
 def _judge_units_payload(result: ExtractionResult) -> list[dict[str, Any]]:
