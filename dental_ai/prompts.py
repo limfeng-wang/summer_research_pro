@@ -39,7 +39,7 @@ E-label safeguards:
 - An advertorial written in first person can still be E1 if it claims the author's own pain/use; commercial status changes only C label, not E label.
 
 CONTENT FUNCTION LABEL
-- C1 Experience-sharing narrative: what happened to a specific experiencer is the main content: symptoms, timing, treatment, management, recovery, or outcome.
+- C1 Experience-sharing narrative: what happened to a specific experiencer is the main content, with a lived symptom/burden sequence such as pain, swelling, inflammation, sleep/eating/work disruption, emotional distress, care-seeking because of symptoms, treatment experience, recovery, or outcome.
 - C2 Question/help-seeking: the author genuinely asks readers for explanation, judgement, recommendation, or actionable advice affecting a decision.
 - C3 Health knowledge sharing: reusable information about causes, symptoms, prevention, management, treatment, or care. It stands independently of one person's story.
 - C4 Advertising/commercial: primary purpose is promotion or conversion for an identifiable commercial target: product, brand, drug, device, clinic, doctor/team, appointment, consultation, paid service, purchase channel, discount, package, or account traffic. Includes advertorials disguised as personal experience.
@@ -74,7 +74,8 @@ C2 must be genuine help-seeking:
 C3 vs C1:
 - If the post mainly tells the author's/specific person's own sequence of symptoms/actions/outcomes -> C1.
 - If the post mainly teaches generally reusable information, even with "you/大家" language -> C3.
-- Personal cost/process sharing from the author's own dental visit is C1 unless it becomes general unanchored education (C3) or promotion (C4).
+- Procedure-heavy posts are C3 when the main content is reusable logistics, fees, registration, doctor selection, operation steps, or aftercare instructions and the author's own pain/burden is absent or only incidental.
+- Personal cost/process sharing from the author's own dental visit is C1 only when anchored in the author's/specific person's symptom burden or treatment outcome. If it mainly lists logistics/cost/aftercare tips, use C3.
 
 C5:
 - Use only after C1-C4 do not fit. Do not use C5 for irrelevant content; irrelevant content should have been R0 upstream.
@@ -83,7 +84,8 @@ COMPACT EXAMPLES
 - "喝了一包芬必得小绿盒, 不愧是大品牌, #芬必得 #牙痛止痛药" -> E1 + C4.
 - "牙痛急救办法: 冰敷、盐水漱口、及时就医" -> E3 + C3.
 - "我牙疼三天睡不着, 明天去拔牙" -> E1 + C1.
-- "我拔智齿两次, 第一次手术费975, 第二次1300, 分享挂号和术后注意事项" -> E1 + C1, not C4, because cost/process sharing alone is not promotion.
+- "我拔智齿两次, 第一次手术费975, 第二次1300, 分享挂号和术后注意事项" -> E1 + C3, not C1/C4, because cost/process sharing alone is generic procedure information.
+- "我智齿发炎疼到睡不着, 冲洗很痛, 后来冰敷和止痛药才缓解" -> E1 + C1.
 - "牙疼怎么办? 现在要不要去急诊?" -> E1 + C2.
 - "我妈牙疼到吃不了饭" -> E2 + C1.
 - "智齿冠周炎症状和治疗, #上海看牙 @某口腔" -> E3 + C4 when service/account promotion dominates.
@@ -105,18 +107,19 @@ You extract source-supported CSM narrative units from multilingual toothache pos
 Do not reveal reasoning. Do not output markdown. Output only the JSON object.
 Use original source text as authoritative. Chinese working-language glosses are allowed.
 Every evidence_span_original must be copied exactly from the source text. No evidence span, no extraction.
-Extract only claim units that describe a toothache/dental-pain CSM narrative.
+Extract only claim units that describe a toothache/dental-pain CSM narrative. A CSM unit must be tied to a specific experienced symptom, burden, coping response, treatment outcome, emotion, or access barrier. Generic dental procedure advice is not enough.
 
 CSM domains:
 - Perceived Cause: stated or implied trigger/cause of the pain or painful dental condition.
 - Symptom Description: pain sensations, swelling, inflammation, location, severity, timing, recurrence.
 - Perceived Consequences: impact of pain/condition on sleep, eating, work, emotion, money, delay, function, or daily life.
-- Coping and Management: actions taken/planned/recommended to manage pain/condition, including medicine, dental visits, procedures, self-care.
+- Coping and Management: actions taken/planned/recommended to manage the specific pain/condition or its burden, including medicine, dental visits, procedures, self-care, or barriers. Generic procedure/aftercare instructions are excluded unless tied to the specific experienced pain/condition.
 - Emotional Expression: fear, anxiety, frustration, relief, regret, trust, anger, embarrassment tied to the pain/condition.
 
 Negative rules:
 - Do not extract pure cost, registration, booking, insurance, hospital workflow, location, price, package, account, or appointment logistics unless the span explicitly frames it as a barrier, consequence, or coping decision for the painful condition.
 - Do not put procedure cost or administrative information under Symptom Description.
+- Do not extract generic post-extraction/post-treatment aftercare rules such as eating after two hours, avoiding brushing/spitting, observation time, doctor selection, or routine monitoring unless the exact span links them to the specific experiencer's pain, swelling, fear, difficulty eating/sleeping, complication, recovery, or barrier.
 - Do not put a diagnosis/tooth type under Perceived Cause unless the source links it to pain, inflammation, swelling, or treatment need.
 - Do not extract "no pain", "not painful", "no inflammation", or asymptomatic conditions as present Symptom Description units.
 - Do not extract generic tips from a mixed post when they are not tied to the specific author's/specific person's pain experience.
@@ -170,6 +173,7 @@ Return one verdict per unit_id:
 - needs_human_review
 
 Use reject for pure cost/admin/booking/location/insurance units that are not framed as pain coping, consequence, or barrier.
+Use reject for generic procedure, doctor-selection, routine monitoring, and aftercare units unless the exact evidence span links them to a specific pain/symptom burden, coping outcome, emotional response, complication, or access barrier.
 Use reject for negated non-symptoms such as "no pain", "not painful", "no inflammation", or asymptomatic findings.
 Use reject for diagnosis/tooth-type units under Perceived Cause unless the evidence links them to pain, swelling, inflammation, or treatment need.
 

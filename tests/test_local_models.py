@@ -7,8 +7,10 @@ from dental_ai.local_models import (
     apply_judge_verdict_payload,
     apply_classification_safeguards,
     apply_commercial_safeguard,
+    apply_generic_procedure_demote_safeguard,
     apply_relevance_safeguard,
     apply_weak_commercial_demote_safeguard,
+    has_lived_pain_burden_sequence,
     has_strong_commercial_evidence,
     mark_units_needing_human_review,
 )
@@ -183,6 +185,18 @@ def test_deterministic_csm_safeguards_reject_admin_cost_and_negated_units():
                 confidence=0.9,
                 judge_verdict=JudgeVerdict.ACCEPT,
             ),
+            NarrativeUnit(
+                unit_id="p1_u004",
+                domain=CSMDomain.COPING_AND_MANAGEMENT,
+                evidence_span_original="我拔完牙疼到睡不着, 冰敷后缓解很多",
+                surface_text_working="冰敷缓解术后疼痛",
+                normalized_concept_en="Cold therapy relieved post-extraction pain",
+                concept_status=ConceptStatus.NEW_CANDIDATE,
+                support_type=SupportType.EXPLICIT,
+                assertion=AssertionStatus.PRESENT,
+                confidence=0.9,
+                judge_verdict=JudgeVerdict.ACCEPT,
+            ),
         ],
     )
 
@@ -191,10 +205,12 @@ def test_deterministic_csm_safeguards_reject_admin_cost_and_negated_units():
     assert [unit.judge_verdict for unit in safeguarded.units] == [
         JudgeVerdict.REJECT,
         JudgeVerdict.REJECT,
+        JudgeVerdict.REJECT,
         JudgeVerdict.ACCEPT,
     ]
     assert safeguarded.units[0].support_type == SupportType.UNSUPPORTED
     assert safeguarded.units[1].support_type == SupportType.UNSUPPORTED
+    assert safeguarded.units[2].support_type == SupportType.UNSUPPORTED
 
 
 def test_json_object_parser_strips_thinking_text():
@@ -356,7 +372,7 @@ def test_commercial_safeguard_requires_promotion_not_care_logistics():
     assert apply_commercial_safeguard(post, ContentFunctionLabel.C3) == ContentFunctionLabel.C3
 
 
-def test_personal_cost_process_c3_is_corrected_to_c1():
+def test_personal_cost_process_without_lived_burden_stays_c3():
     post = SourcePost(
         post_id="p1",
         country=Country.CHI,
@@ -370,11 +386,11 @@ def test_personal_cost_process_c3_is_corrected_to_c1():
 
     assert apply_classification_safeguards(post, ExperiencerLabel.E1, ContentFunctionLabel.C3) == (
         ExperiencerLabel.E1,
-        ContentFunctionLabel.C1,
+        ContentFunctionLabel.C3,
     )
 
 
-def test_weak_commercial_demote_safeguard_turns_personal_cost_post_back_to_c1():
+def test_weak_commercial_demote_safeguard_turns_personal_cost_post_back_to_c3():
     post = SourcePost(
         post_id="p1",
         country=Country.CHI,
@@ -389,7 +405,43 @@ def test_weak_commercial_demote_safeguard_turns_personal_cost_post_back_to_c1():
     assert apply_weak_commercial_demote_safeguard(post, ContentFunctionLabel.C4) == ContentFunctionLabel.C1
     assert apply_classification_safeguards(post, ExperiencerLabel.E1, ContentFunctionLabel.C4) == (
         ExperiencerLabel.E1,
-        ContentFunctionLabel.C1,
+        ContentFunctionLabel.C3,
+    )
+
+
+def test_generic_procedure_demote_safeguard_preserves_lived_pain_narrative():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean=(
+            "前段时间我智齿发炎疼到睡不着, 吃饭只能喝流食。"
+            "后来去冲洗, 回家冰敷后终于缓解。"
+        ),
+    )
+
+    assert has_lived_pain_burden_sequence(post)
+    assert apply_generic_procedure_demote_safeguard(post, ExperiencerLabel.E1, ContentFunctionLabel.C1) == (
+        ContentFunctionLabel.C1
+    )
+
+
+def test_generic_procedure_demote_safeguard_demotes_wisdom_tooth_logistics():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean=(
+            "拔牙×2, 第一次手术费975, 第二次手术费1300左右。"
+            "作者本人的是阻生齿, 有龋齿, 不痛, 没发炎。"
+            "首先关于挂号的小tips: 可以提前预约挂号。"
+            "拔牙后的注意事项: 拔完牙24h内可以冰敷一下。"
+        ),
+    )
+
+    assert not has_lived_pain_burden_sequence(post)
+    assert apply_generic_procedure_demote_safeguard(post, ExperiencerLabel.E1, ContentFunctionLabel.C1) == (
+        ContentFunctionLabel.C3
     )
 
 

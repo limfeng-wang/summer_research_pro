@@ -372,6 +372,8 @@ def _is_rule_rejected_csm_unit(unit: Any) -> bool:
         return True
     if _is_pure_admin_or_cost_unit(text):
         return True
+    if _is_generic_procedure_or_aftercare_unit(text):
+        return True
     if unit.domain == CSMDomain.PERCEIVED_CAUSE and _has_diagnosis_without_pain_link(text):
         return True
     return False
@@ -455,6 +457,133 @@ def _is_pure_admin_or_cost_unit(text: str) -> bool:
         "붓",
     ]
     return any(cue in text for cue in admin_or_cost) and not any(cue in text for cue in pain_or_barrier)
+
+
+def _is_generic_procedure_or_aftercare_unit(text: str) -> bool:
+    """Reject procedural advice unless the unit itself carries lived CSM evidence."""
+
+    generic_procedure = [
+        "挂一个自己喜欢的",
+        "提前了解",
+        "医生选择",
+        "dentist selection",
+        "doctor selection",
+        "观察30",
+        "观察 30",
+        "post-extraction monitoring",
+        "routine monitoring",
+        "两个小时之后才可以饮食",
+        "two hours after extraction",
+        "post-extraction dietary guidelines",
+        "质软",
+        "半流体",
+        "避免刷牙",
+        "post-extraction oral hygiene",
+        "避免吸吐口水",
+        "avoid spitting",
+        "post-extraction oral care",
+        "拔牙后的注意事项",
+        "术后冰敷",
+        "拔完牙24h内可以冰敷",
+        "cold therapy after extraction",
+        "aftercare instructions",
+        "护理指南",
+        "appointment adjustment",
+        "dental care scheduling",
+    ]
+    if not any(cue in text for cue in generic_procedure):
+        return False
+    return not _has_lived_csm_anchor(text)
+
+
+def _has_lived_csm_anchor(text: str) -> bool:
+    """Return whether a unit is anchored to experienced pain, burden, outcome, or barrier."""
+
+    lived_subject = [
+        "我",
+        "我的",
+        "本人",
+        "作者本人",
+        "妈妈",
+        "爸爸",
+        "孩子",
+        "朋友",
+        "患者",
+        "私",
+        "自分",
+        "母",
+        "父",
+        "친구",
+        "엄마",
+        "아빠",
+        "제가",
+        "나는",
+    ]
+    burden_or_outcome = [
+        "疼到",
+        "痛到",
+        "疼的",
+        "疼得",
+        "痛得",
+        "受不了",
+        "难受",
+        "折磨",
+        "崩溃",
+        "睡不着",
+        "睡不香",
+        "吃不了",
+        "只能喝流食",
+        "影响",
+        "哭",
+        "缓解",
+        "舒服",
+        "恢复",
+        "好转",
+        "加重",
+        "发胀",
+        "牙龈鼓",
+        "脸肿",
+        "张嘴",
+        "咀嚼",
+        "复诊",
+        "太贵",
+        "承担不起",
+        "barrier",
+        "burden",
+        "relief",
+        "worse",
+        "could not sleep",
+        "couldn't sleep",
+        "could not eat",
+        "痛みで",
+        "眠れ",
+        "食べられ",
+        "楽にな",
+        "통증",
+        "아파서",
+        "못 먹",
+        "잠",
+    ]
+    explicit_symptom = [
+        "牙疼",
+        "牙痛",
+        "疼痛",
+        "牙龈肿痛",
+        "肿痛",
+        "发炎",
+        "肿胀",
+        "止痛",
+        "镇痛",
+        "痛み",
+        "腫れ",
+        "치통",
+        "아프",
+        "붓",
+    ]
+    return (
+        any(cue in text for cue in burden_or_outcome)
+        or (any(cue in text for cue in lived_subject) and any(cue in text for cue in explicit_symptom))
+    )
 
 
 def _has_diagnosis_without_pain_link(text: str) -> bool:
@@ -732,6 +861,7 @@ def apply_classification_safeguards(
     content_function = apply_weak_commercial_demote_safeguard(post, content_function)
     content_function = apply_help_seeking_safeguard(post, content_function)
     content_function = apply_personal_narrative_safeguard(post, experiencer, content_function)
+    content_function = apply_generic_procedure_demote_safeguard(post, experiencer, content_function)
     experiencer = apply_generic_knowledge_experiencer_safeguard(post, experiencer, content_function)
     return experiencer, content_function
 
@@ -1041,6 +1171,142 @@ def apply_personal_narrative_safeguard(
     return label
 
 
+def apply_generic_procedure_demote_safeguard(
+    post: SourcePost,
+    experiencer: ExperiencerLabel,
+    label: ContentFunctionLabel,
+) -> ContentFunctionLabel:
+    """Demote procedure-heavy personal posts without lived pain/burden to C3."""
+
+    if label != ContentFunctionLabel.C1 or experiencer not in {ExperiencerLabel.E1, ExperiencerLabel.E2}:
+        return label
+    if has_strong_commercial_evidence(post) or has_lived_pain_burden_sequence(post):
+        return label
+    text = post.combined_source_text
+    procedural_cues = [
+        "挂号",
+        "签到",
+        "拍片",
+        "缴费",
+        "手术费",
+        "医保",
+        "报销",
+        "麻醉药",
+        "观察",
+        "注意事项",
+        "术后",
+        "拔牙后",
+        "流程",
+        "步骤",
+        "tips",
+        "攻略",
+        "费用",
+        "价格",
+        "多少钱",
+        "预约",
+        "医生",
+        "牙片",
+        "选择",
+    ]
+    generic_structure_cues = [
+        "首先",
+        "其次",
+        "关于",
+        "过程",
+        "注意事项",
+        "仅供参考",
+        "小tips",
+        "建议",
+        "可以",
+        "需要",
+    ]
+    if sum(cue in text for cue in procedural_cues) >= 3 and any(cue in text for cue in generic_structure_cues):
+        return ContentFunctionLabel.C3
+    return label
+
+
+def has_lived_pain_burden_sequence(post: SourcePost) -> bool:
+    """Detect a specific experiencer's pain/burden sequence, not generic aftercare advice."""
+
+    text = post.combined_source_text
+    lived_subject = [
+        "我牙",
+        "我的牙",
+        "我智齿",
+        "我真的",
+        "我疼",
+        "我痛",
+        "我难受",
+        "我坚持",
+        "我试",
+        "我用了",
+        "我吃了",
+        "我去",
+        "前段时间我",
+        "昨晚",
+        "上周",
+        "妈妈",
+        "爸爸",
+        "孩子",
+        "朋友",
+        "私",
+        "自分",
+        "제가",
+        "나는",
+    ]
+    burden_or_outcome = [
+        "疼到",
+        "痛到",
+        "疼的",
+        "疼得",
+        "痛得",
+        "受不了",
+        "难受",
+        "折磨",
+        "崩溃",
+        "睡不着",
+        "睡不香",
+        "吃不了",
+        "只能喝流食",
+        "不敢",
+        "影响",
+        "哭",
+        "缓解",
+        "舒服",
+        "恢复",
+        "好转",
+        "加重",
+        "发胀",
+        "牙龈鼓",
+        "脸肿",
+        "张嘴",
+        "咀嚼",
+        "复诊",
+    ]
+    explicit_pain = [
+        "牙疼",
+        "牙痛",
+        "疼痛",
+        "牙龈肿痛",
+        "肿痛",
+        "发炎",
+        "肿胀",
+        "止痛",
+        "镇痛",
+        "痛み",
+        "腫れ",
+        "치통",
+        "아프",
+        "붓",
+    ]
+    negated_only = ["不痛", "不疼", "无痛", "没发炎", "没有发炎"]
+    if any(cue in text for cue in negated_only) and not any(cue in text for cue in burden_or_outcome):
+        return False
+    return any(cue in text for cue in lived_subject) and (
+        any(cue in text for cue in burden_or_outcome) or any(cue in text for cue in explicit_pain)
+    )
+
+
 def apply_generic_knowledge_experiencer_safeguard(
     post: SourcePost,
     experiencer: ExperiencerLabel,
@@ -1117,12 +1383,14 @@ __all__ = [
     "apply_relevance_safeguard",
     "apply_classification_safeguards",
     "apply_commercial_safeguard",
+    "apply_generic_procedure_demote_safeguard",
     "apply_generic_knowledge_experiencer_safeguard",
     "apply_help_seeking_safeguard",
     "apply_personal_narrative_safeguard",
     "apply_specific_experiencer_safeguard",
     "apply_weak_commercial_demote_safeguard",
     "has_named_clinic_or_service_tag",
+    "has_lived_pain_burden_sequence",
     "has_strong_commercial_evidence",
     "has_toothache_relevance_evidence",
     "local_lm_for_role",
