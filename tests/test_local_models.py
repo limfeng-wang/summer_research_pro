@@ -1,6 +1,8 @@
 from dental_ai.local_models import (
     _extract_label_payload,
+    _extract_json_object,
     _extract_judge_verdict_payload,
+    apply_deterministic_csm_safeguards,
     apply_judge_verdict_payload,
     apply_classification_safeguards,
     apply_commercial_safeguard,
@@ -136,6 +138,68 @@ def test_compact_judge_payload_keeps_missing_units_for_human_review():
     judged = apply_judge_verdict_payload(result, {"unit_verdicts": []})
 
     assert judged.units[0].judge_verdict == JudgeVerdict.NEEDS_HUMAN_REVIEW
+
+
+def test_deterministic_csm_safeguards_reject_admin_cost_and_negated_units():
+    result = ExtractionResult(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        units=[
+            NarrativeUnit(
+                unit_id="p1_u001",
+                domain=CSMDomain.COPING_AND_MANAGEMENT,
+                evidence_span_original="检查费70r,拍了一个牙片",
+                surface_text_working="拍牙片检查",
+                normalized_concept_en="Dental imaging fee",
+                concept_status=ConceptStatus.NEW_CANDIDATE,
+                support_type=SupportType.EXPLICIT,
+                assertion=AssertionStatus.PRESENT,
+                confidence=0.9,
+                judge_verdict=JudgeVerdict.ACCEPT,
+            ),
+            NarrativeUnit(
+                unit_id="p1_u002",
+                domain=CSMDomain.SYMPTOM_DESCRIPTION,
+                evidence_span_original="有龋齿,不痛,没发炎",
+                surface_text_working="无疼痛和炎症",
+                normalized_concept_en="Absence of dental pain and inflammation",
+                concept_status=ConceptStatus.NEW_CANDIDATE,
+                support_type=SupportType.EXPLICIT,
+                assertion=AssertionStatus.PRESENT,
+                confidence=0.9,
+                judge_verdict=JudgeVerdict.ACCEPT,
+            ),
+            NarrativeUnit(
+                unit_id="p1_u003",
+                domain=CSMDomain.COPING_AND_MANAGEMENT,
+                evidence_span_original="拔完牙24h内可以冰敷一下",
+                surface_text_working="术后冰敷",
+                normalized_concept_en="Cold therapy after extraction",
+                concept_status=ConceptStatus.NEW_CANDIDATE,
+                support_type=SupportType.EXPLICIT,
+                assertion=AssertionStatus.PRESENT,
+                confidence=0.9,
+                judge_verdict=JudgeVerdict.ACCEPT,
+            ),
+        ],
+    )
+
+    safeguarded = apply_deterministic_csm_safeguards(result)
+
+    assert [unit.judge_verdict for unit in safeguarded.units] == [
+        JudgeVerdict.REJECT,
+        JudgeVerdict.REJECT,
+        JudgeVerdict.ACCEPT,
+    ]
+    assert safeguarded.units[0].support_type == SupportType.UNSUPPORTED
+    assert safeguarded.units[1].support_type == SupportType.UNSUPPORTED
+
+
+def test_json_object_parser_strips_thinking_text():
+    text = '<think>reasoning that should not be parsed</think>{"unit_verdicts":[]}'
+
+    assert _extract_json_object(text) == {"unit_verdicts": []}
 
 
 def test_judge_payload_recovers_verdicts_from_missing_comma_json():

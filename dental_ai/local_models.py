@@ -13,11 +13,13 @@ from dental_ai.classification_gold import ClassificationGoldRecord, canonical_po
 from dental_ai.model_config import DEFAULT_MODELS_ROOT, ModelStackConfig
 from dental_ai.prompts import CSM_EXTRACTION_PROMPT, JUDGE_PROMPT, R1_CLASSIFICATION_PROMPT, RELEVANCE_PROMPT
 from dental_ai.schemas import (
+    CSMDomain,
     ContentFunctionLabel,
     ExperiencerLabel,
     ExtractionResult,
     JudgeVerdict,
     RelevanceLabel,
+    SupportType,
     SourcePost,
 )
 
@@ -55,7 +57,7 @@ class LocalCausalLM:
         if self._processor is not None:
             return self._generate_with_processor(messages, config)
 
-        prompt = self._tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        prompt = self._tokenizer_chat_prompt(messages)
         inputs = self._tokenizer(prompt, return_tensors="pt").to(self._model.device)
         kwargs: dict[str, Any] = {
             "max_new_tokens": config.max_new_tokens,
@@ -193,6 +195,18 @@ class LocalCausalLM:
             return prefix
         return str(prefix)
 
+    def _tokenizer_chat_prompt(self, messages: list[dict[str, str]]) -> str:
+        kwargs: dict[str, Any] = {
+            "tokenize": False,
+            "add_generation_prompt": True,
+            "enable_thinking": False,
+        }
+        try:
+            return self._tokenizer.apply_chat_template(messages, **kwargs)
+        except TypeError:
+            kwargs.pop("enable_thinking", None)
+            return self._tokenizer.apply_chat_template(messages, **kwargs)
+
     def _uses_processor_loader(self) -> bool:
         model_path = Path(self.model_path)
         return (model_path / "processor_config.json").exists() or "gemma-4" in self.model_path.lower()
@@ -290,7 +304,8 @@ class LocalJudge:
             GenerationConfig(max_new_tokens=768),
         )
         payload = _extract_judge_verdict_payload(text)
-        return apply_judge_verdict_payload(result, payload)
+        judged = apply_judge_verdict_payload(result, payload)
+        return apply_deterministic_csm_safeguards(judged)
 
 
 def mark_units_needing_human_review(result: ExtractionResult) -> ExtractionResult:
@@ -324,6 +339,153 @@ def apply_judge_verdict_payload(result: ExtractionResult, payload: dict[str, Any
         for unit in result.units
     ]
     return result.model_copy(update={"units": units})
+
+
+def apply_deterministic_csm_safeguards(result: ExtractionResult) -> ExtractionResult:
+    """Reject rule-detectable non-CSM units after model judging."""
+
+    units = []
+    for unit in result.units:
+        if _is_rule_rejected_csm_unit(unit):
+            units.append(
+                unit.model_copy(
+                    update={
+                        "judge_verdict": JudgeVerdict.REJECT,
+                        "support_type": SupportType.UNSUPPORTED,
+                    }
+                )
+            )
+        else:
+            units.append(unit)
+    return result.model_copy(update={"units": units})
+
+
+def _is_rule_rejected_csm_unit(unit: Any) -> bool:
+    text = " ".join(
+        [
+            unit.evidence_span_original,
+            unit.surface_text_working,
+            unit.normalized_concept_en,
+        ]
+    ).lower()
+    if _has_negated_no_pain_signal(text):
+        return True
+    if _is_pure_admin_or_cost_unit(text):
+        return True
+    if unit.domain == CSMDomain.PERCEIVED_CAUSE and _has_diagnosis_without_pain_link(text):
+        return True
+    return False
+
+
+def _has_negated_no_pain_signal(text: str) -> bool:
+    return any(
+        cue in text
+        for cue in [
+            "不痛",
+            "不疼",
+            "无痛",
+            "没发炎",
+            "没有发炎",
+            "no pain",
+            "no inflammation",
+            "痛みなし",
+            "痛くない",
+            "아프지",
+            "통증 없음",
+        ]
+    )
+
+
+def _is_pure_admin_or_cost_unit(text: str) -> bool:
+    admin_or_cost = [
+        "挂号",
+        "预约",
+        "签到",
+        "加号",
+        "检查费",
+        "手术费",
+        "费用",
+        "价格",
+        "医保",
+        "报销",
+        "牙片",
+        "拍片",
+        "appointment",
+        "registration",
+        "insurance",
+        "fee",
+        "cost",
+        "price",
+        "x-ray",
+        "予約",
+        "受付",
+        "費用",
+        "料金",
+        "保険",
+        "예약",
+        "접수",
+        "비용",
+        "가격",
+        "보험",
+    ]
+    pain_or_barrier = [
+        "牙疼",
+        "牙痛",
+        "疼痛",
+        "痛",
+        "发炎",
+        "肿",
+        "止痛",
+        "镇痛",
+        "忍不了",
+        "睡不着",
+        "吃不了",
+        "负担",
+        "太贵",
+        "承担不起",
+        "barrier",
+        "burden",
+        "pain",
+        "swelling",
+        "inflammation",
+        "痛み",
+        "腫れ",
+        "치통",
+        "통증",
+        "붓",
+    ]
+    return any(cue in text for cue in admin_or_cost) and not any(cue in text for cue in pain_or_barrier)
+
+
+def _has_diagnosis_without_pain_link(text: str) -> bool:
+    diagnosis = [
+        "阻生齿",
+        "阻生智齿",
+        "龋齿",
+        "impacted",
+        "caries",
+        "埋伏",
+        "虫歯",
+        "매복",
+        "충치",
+    ]
+    pain_link = [
+        "牙疼",
+        "牙痛",
+        "疼",
+        "痛",
+        "发炎",
+        "肿",
+        "pain",
+        "inflammation",
+        "swelling",
+        "痛み",
+        "腫れ",
+        "통증",
+        "아프",
+        "붓",
+    ]
+    return any(cue in text for cue in diagnosis) and not any(cue in text for cue in pain_link)
 
 
 def _extract_judge_verdict_payload(text: str) -> dict[str, Any]:
@@ -464,6 +626,7 @@ def _classification_example_payload(example: ClassificationGoldRecord) -> dict[s
 
 
 def _extract_json_object(text: str) -> dict[str, Any]:
+    text = _strip_thinking_text(text)
     try:
         return json.loads(text)
     except json.JSONDecodeError:
@@ -473,6 +636,12 @@ def _extract_json_object(text: str) -> dict[str, Any]:
     if not match:
         raise ValueError(f"Model output did not contain a JSON object: {text[:500]!r}")
     return json.loads(match.group(0))
+
+
+def _strip_thinking_text(text: str) -> str:
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r"^\s*<think>.*?(?=\{|\[|$)", "", text, flags=re.DOTALL | re.IGNORECASE)
+    return text.strip()
 
 
 def _extract_label_payload(text: str, required_keys: list[str]) -> dict[str, Any]:

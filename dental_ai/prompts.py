@@ -102,6 +102,7 @@ Return strict JSON only:
 CSM_EXTRACTION_PROMPT = """\
 You extract source-supported CSM narrative units from multilingual toothache posts.
 
+Do not reveal reasoning. Do not output markdown. Output only the JSON object.
 Use original source text as authoritative. Chinese working-language glosses are allowed.
 Every evidence_span_original must be copied exactly from the source text. No evidence span, no extraction.
 Extract only claim units that describe a toothache/dental-pain CSM narrative.
@@ -117,6 +118,7 @@ Negative rules:
 - Do not extract pure cost, registration, booking, insurance, hospital workflow, location, price, package, account, or appointment logistics unless the span explicitly frames it as a barrier, consequence, or coping decision for the painful condition.
 - Do not put procedure cost or administrative information under Symptom Description.
 - Do not put a diagnosis/tooth type under Perceived Cause unless the source links it to pain, inflammation, swelling, or treatment need.
+- Do not extract "no pain", "not painful", "no inflammation", or asymptomatic conditions as present Symptom Description units.
 - Do not extract generic tips from a mixed post when they are not tied to the specific author's/specific person's pain experience.
 - If the post has no source-supported CSM unit, return "units": [].
 
@@ -153,6 +155,7 @@ Return strict JSON matching:
 JUDGE_PROMPT = """\
 You are judging a proposed structured annotation for a multilingual toothache post.
 
+Do not reveal reasoning. Do not output markdown. Output only the JSON object.
 Use original source text as authoritative. Check only these criteria:
 1. Does every evidence_span_original appear exactly in the source text?
 2. Is each CSM domain supported by its evidence span?
@@ -167,6 +170,8 @@ Return one verdict per unit_id:
 - needs_human_review
 
 Use reject for pure cost/admin/booking/location/insurance units that are not framed as pain coping, consequence, or barrier.
+Use reject for negated non-symptoms such as "no pain", "not painful", "no inflammation", or asymptomatic findings.
+Use reject for diagnosis/tooth-type units under Perceived Cause unless the evidence links them to pain, swelling, inflammation, or treatment need.
 
 Return strict JSON only. Do not add markdown, comments, explanations, or trailing text.
 {
