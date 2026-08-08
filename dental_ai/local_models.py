@@ -6,6 +6,7 @@ import gc
 import json
 import re
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
 
@@ -287,6 +288,7 @@ class LocalCSMExtractor:
         )
         payload = _extract_csm_payload(text, post)
         result = ExtractionResult.model_validate(payload)
+        result = repair_evidence_spans(result, post)
         return mark_units_needing_human_review(result)
 
 
@@ -372,6 +374,10 @@ def _is_rule_rejected_csm_unit(unit: Any) -> bool:
         return True
     if _is_pure_admin_or_cost_unit(text):
         return True
+    if _is_vague_non_csm_unit(unit.domain, text):
+        return True
+    if _is_routine_care_seeking_without_pain_anchor(text):
+        return True
     if _is_generic_procedure_or_aftercare_unit(text):
         return True
     if unit.domain == CSMDomain.PERCEIVED_CAUSE and _has_diagnosis_without_pain_link(text):
@@ -454,9 +460,68 @@ def _is_pure_admin_or_cost_unit(text: str) -> bool:
         "腫れ",
         "치통",
         "통증",
+        "아픕",
+        "아파",
         "붓",
     ]
     return any(cue in text for cue in admin_or_cost) and not any(cue in text for cue in pain_or_barrier)
+
+
+def _is_vague_non_csm_unit(domain: CSMDomain, text: str) -> bool:
+    """Reject vague dental wishes, generic resilience, and procedure-only affect."""
+
+    vague_cues = [
+        "希望我的牙能好着",
+        "desire for dental recovery",
+        "dental health aspiration",
+        "dental hygiene satisfaction",
+        "不枉我这么多年",
+        "勤勤恳恳刷牙",
+        "乗り越えるよ",
+        "resilience",
+        "coping intention",
+        "まったりいきましょう",
+        "take it easy",
+        "정신 좀 차리고",
+    ]
+    procedure_emotion_cues = [
+        "磨牙的时候有点慌",
+        "dental anxiety during procedure",
+        "anxiety during dental procedure",
+        "procedural anxiety",
+        "整体感觉尚可",
+        "professional",
+    ]
+    if any(cue in text for cue in vague_cues):
+        return True
+    if domain in {CSMDomain.SYMPTOM_DESCRIPTION, CSMDomain.EMOTIONAL_EXPRESSION, CSMDomain.COPING_AND_MANAGEMENT}:
+        if any(cue in text for cue in procedure_emotion_cues) and not _has_lived_csm_anchor(text):
+            return True
+    return False
+
+
+def _is_routine_care_seeking_without_pain_anchor(text: str) -> bool:
+    """Reject routine dentist-contact/procedure spans unless pain/burden is in the span."""
+
+    care_seeking = [
+        "歯医者に電話",
+        "歯医者電話",
+        "歯医者行く",
+        "病院あいて",
+        "dental care seeking",
+        "dentist call",
+        "call dentist",
+        "明日歯医者",
+        "朝に歯医者",
+        "치아 조각",
+        "발치",
+        "dental procedure",
+        "dental appliance use",
+        "リテーナー",
+    ]
+    if not any(cue in text for cue in care_seeking):
+        return False
+    return not _has_lived_csm_anchor(text)
 
 
 def _is_generic_procedure_or_aftercare_unit(text: str) -> bool:
@@ -561,6 +626,8 @@ def _has_lived_csm_anchor(text: str) -> bool:
         "楽にな",
         "통증",
         "아파서",
+        "아픕",
+        "아파",
         "못 먹",
         "잠",
     ]
@@ -578,12 +645,55 @@ def _has_lived_csm_anchor(text: str) -> bool:
         "腫れ",
         "치통",
         "아프",
+        "아픕",
+        "아파",
         "붓",
     ]
     return (
         any(cue in text for cue in burden_or_outcome)
         or (any(cue in text for cue in lived_subject) and any(cue in text for cue in explicit_symptom))
     )
+
+
+def repair_evidence_spans(result: ExtractionResult, post: SourcePost) -> ExtractionResult:
+    """Repair near-exact evidence spans before validation when the model changed a character."""
+
+    source_text = post.combined_source_text
+    units = []
+    for unit in result.units:
+        span = unit.evidence_span_original
+        if not span or span in source_text:
+            units.append(unit)
+            continue
+        repaired = _best_near_exact_source_span(span, source_text)
+        if repaired is None:
+            units.append(unit)
+            continue
+        units.append(unit.model_copy(update={"evidence_span_original": repaired}))
+    return result.model_copy(update={"units": units})
+
+
+def _best_near_exact_source_span(span: str, source_text: str) -> str | None:
+    """Return a source substring when one small model typo is very likely."""
+
+    span = span.strip()
+    if len(span) < 12 or len(source_text) < len(span):
+        return None
+    best_ratio = 0.0
+    best_window = None
+    span_len = len(span)
+    min_len = max(1, span_len - 4)
+    max_len = min(len(source_text), span_len + 4)
+    for window_len in range(min_len, max_len + 1):
+        for start in range(0, len(source_text) - window_len + 1):
+            window = source_text[start : start + window_len]
+            ratio = SequenceMatcher(None, span, window).ratio()
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_window = window
+    if best_ratio >= 0.96:
+        return best_window
+    return None
 
 
 def _has_diagnosis_without_pain_link(text: str) -> bool:
@@ -1394,4 +1504,5 @@ __all__ = [
     "has_strong_commercial_evidence",
     "has_toothache_relevance_evidence",
     "local_lm_for_role",
+    "repair_evidence_spans",
 ]

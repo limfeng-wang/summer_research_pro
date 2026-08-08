@@ -120,6 +120,8 @@ Negative rules:
 - Do not extract pure cost, registration, booking, insurance, hospital workflow, location, price, package, account, or appointment logistics unless the span explicitly frames it as a barrier, consequence, or coping decision for the painful condition.
 - Do not put procedure cost or administrative information under Symptom Description.
 - Do not extract generic post-extraction/post-treatment aftercare rules such as eating after two hours, avoiding brushing/spitting, observation time, doctor selection, or routine monitoring unless the exact span links them to the specific experiencer's pain, swelling, fear, difficulty eating/sleeping, complication, recovery, or barrier.
+- Do not extract vague wishes, generic resilience, or general dental self-approval as CSM units, e.g. "hope my tooth stays good", "I'll get through it", "take it easy today", or satisfaction with brushing.
+- Do not extract dental-procedure anxiety, routine dentist calls, appliance use, or treatment steps unless the exact span links them to toothache pain, symptom burden, treatment pain, recovery, or urgent coping.
 - Do not put a diagnosis/tooth type under Perceived Cause unless the source links it to pain, inflammation, swelling, or treatment need.
 - Do not extract "no pain", "not painful", "no inflammation", or asymptomatic conditions as present Symptom Description units.
 - Do not extract generic tips from a mixed post when they are not tied to the specific author's/specific person's pain experience.
@@ -174,6 +176,7 @@ Return one verdict per unit_id:
 
 Use reject for pure cost/admin/booking/location/insurance units that are not framed as pain coping, consequence, or barrier.
 Use reject for generic procedure, doctor-selection, routine monitoring, and aftercare units unless the exact evidence span links them to a specific pain/symptom burden, coping outcome, emotional response, complication, or access barrier.
+Use reject for vague wishes/resilience/self-approval and procedure-only anxiety unless the exact evidence span links them to toothache pain, symptom burden, treatment pain, recovery, or urgent coping.
 Use reject for negated non-symptoms such as "no pain", "not painful", "no inflammation", or asymptomatic findings.
 Use reject for diagnosis/tooth-type units under Perceived Cause unless the evidence links them to pain, swelling, inflammation, or treatment need.
 

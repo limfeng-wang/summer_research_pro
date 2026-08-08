@@ -131,6 +131,7 @@ def _run_hf(
         LocalJudge,
         LocalR1Classifier,
         LocalRelevanceClassifier,
+        apply_classification_safeguards,
         local_lm_for_role,
     )
     from dental_ai.model_config import load_model_stack_config
@@ -203,6 +204,13 @@ def _run_hf(
             output = output_by_post_id.get(post.post_id)
             if output is None:
                 continue
+            output = _apply_pre_extraction_classification_safeguards(
+                post,
+                output,
+                apply_classification_safeguards=apply_classification_safeguards,
+                validate_hierarchical_result=validate_hierarchical_result,
+            )
+            output_by_post_id[post.post_id] = output
             result = output.result
             if not _should_extract_csm_result(result, config):
                 continue
@@ -448,6 +456,38 @@ def _should_extract_csm_result(result: ExtractionResult, config: object) -> bool
     if result.experiencer_label == ExperiencerLabel.E1:
         return True
     return bool(getattr(config, "extract_proxy_csm", True)) and result.experiencer_label == ExperiencerLabel.E2
+
+
+def _apply_pre_extraction_classification_safeguards(
+    post: SourcePost,
+    output: object,
+    *,
+    apply_classification_safeguards: object,
+    validate_hierarchical_result: object,
+) -> object:
+    result = output.result
+    if result.relevance_label != RelevanceLabel.R1 or not result.experiencer_label or not result.content_function:
+        return output
+    experiencer, content_function = apply_classification_safeguards(
+        post,
+        result.experiencer_label,
+        result.content_function,
+    )
+    if experiencer == result.experiencer_label and content_function == result.content_function:
+        return output
+    result = result.model_copy(
+        update={
+            "experiencer_label": experiencer,
+            "content_function": content_function,
+        }
+    )
+    return output.__class__(
+        result=result,
+        trace=output.trace.__class__(
+            stages=output.trace.stages + ["classification_safeguards"],
+            validation=validate_hierarchical_result(result, post),
+        ),
+    )
 
 
 if __name__ == "__main__":

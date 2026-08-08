@@ -1,6 +1,10 @@
 import json
 
-from dental_ai.run import _hf_manifest_config
+from dental_ai.pipeline import PipelineOutput, PipelineTrace
+from dental_ai.local_models import apply_classification_safeguards
+from dental_ai.run import _apply_pre_extraction_classification_safeguards, _hf_manifest_config, _should_extract_csm_result
+from dental_ai.schemas import ContentFunctionLabel, Country, ExperiencerLabel, ExtractionResult, Language, RelevanceLabel, SourcePost
+from dental_ai.validate import validate_hierarchical_result
 
 
 def test_hf_manifest_lists_only_active_models_when_reranker_disabled(tmp_path):
@@ -67,3 +71,35 @@ def test_hf_manifest_lists_reranker_as_active_when_enabled(tmp_path):
     assert "reranker" in manifest["models"]
     assert manifest["active_model_roles"] == ["retriever", "reranker"]
     assert manifest["disabled_optional_models"] == {}
+
+
+def test_pre_extraction_safeguard_blocks_generic_wisdom_tooth_logistics():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean=(
+            "两种阻生齿,看看需要多少钱。拔牙×2,第一次手术费975,第二次手术费1300左右。"
+            "作者本人的是阻生齿,有龋齿,不痛,没发炎。首先,关于挂号的小tips:挂号一定要趁早。"
+            "其次,过程:挂号、签到,等待叫号。拔牙后的注意事项:拔完牙24h内可以冰敷一下。"
+        ),
+    )
+    result = ExtractionResult.empty_for_post(post).model_copy(
+        update={
+            "relevance_label": RelevanceLabel.R1,
+            "experiencer_label": ExperiencerLabel.E1,
+            "content_function": ContentFunctionLabel.C1,
+        }
+    )
+    output = PipelineOutput(result=result, trace=PipelineTrace(stages=["relevance", "r1_classification"]))
+
+    guarded = _apply_pre_extraction_classification_safeguards(
+        post,
+        output,
+        apply_classification_safeguards=apply_classification_safeguards,
+        validate_hierarchical_result=validate_hierarchical_result,
+    )
+
+    assert guarded.result.content_function == ContentFunctionLabel.C3
+    assert "classification_safeguards" in guarded.trace.stages
+    assert not _should_extract_csm_result(guarded.result, object())

@@ -13,6 +13,7 @@ from dental_ai.local_models import (
     has_lived_pain_burden_sequence,
     has_strong_commercial_evidence,
     mark_units_needing_human_review,
+    repair_evidence_spans,
 )
 from dental_ai.schemas import (
     AssertionStatus,
@@ -197,6 +198,54 @@ def test_deterministic_csm_safeguards_reject_admin_cost_and_negated_units():
                 confidence=0.9,
                 judge_verdict=JudgeVerdict.ACCEPT,
             ),
+            NarrativeUnit(
+                unit_id="p1_u005",
+                domain=CSMDomain.COPING_AND_MANAGEMENT,
+                evidence_span_original="希望我的牙能好着",
+                surface_text_working="希望牙能好",
+                normalized_concept_en="Dental health aspiration",
+                concept_status=ConceptStatus.NEW_CANDIDATE,
+                support_type=SupportType.EXPLICIT,
+                assertion=AssertionStatus.PRESENT,
+                confidence=0.9,
+                judge_verdict=JudgeVerdict.ACCEPT,
+            ),
+            NarrativeUnit(
+                unit_id="p1_u006",
+                domain=CSMDomain.SYMPTOM_DESCRIPTION,
+                evidence_span_original="磨牙的时候有点慌",
+                surface_text_working="磨牙时紧张",
+                normalized_concept_en="Anxiety during dental procedure",
+                concept_status=ConceptStatus.NEW_CANDIDATE,
+                support_type=SupportType.EXPLICIT,
+                assertion=AssertionStatus.PRESENT,
+                confidence=0.9,
+                judge_verdict=JudgeVerdict.ACCEPT,
+            ),
+            NarrativeUnit(
+                unit_id="p1_u007",
+                domain=CSMDomain.COPING_AND_MANAGEMENT,
+                evidence_span_original="歯医者に電話しなきゃ",
+                surface_text_working="需要联系牙医",
+                normalized_concept_en="Dental care seeking intention",
+                concept_status=ConceptStatus.NEW_CANDIDATE,
+                support_type=SupportType.EXPLICIT,
+                assertion=AssertionStatus.PRESENT,
+                confidence=0.9,
+                judge_verdict=JudgeVerdict.ACCEPT,
+            ),
+            NarrativeUnit(
+                unit_id="p1_u008",
+                domain=CSMDomain.COPING_AND_MANAGEMENT,
+                evidence_span_original="발치하고 봉(?) 심어서 (아픕니다!)",
+                surface_text_working="拔牙过程疼痛",
+                normalized_concept_en="Dental procedure with pain",
+                concept_status=ConceptStatus.NEW_CANDIDATE,
+                support_type=SupportType.EXPLICIT,
+                assertion=AssertionStatus.PRESENT,
+                confidence=0.9,
+                judge_verdict=JudgeVerdict.ACCEPT,
+            ),
         ],
     )
 
@@ -207,10 +256,49 @@ def test_deterministic_csm_safeguards_reject_admin_cost_and_negated_units():
         JudgeVerdict.REJECT,
         JudgeVerdict.REJECT,
         JudgeVerdict.ACCEPT,
+        JudgeVerdict.REJECT,
+        JudgeVerdict.REJECT,
+        JudgeVerdict.REJECT,
+        JudgeVerdict.ACCEPT,
     ]
     assert safeguarded.units[0].support_type == SupportType.UNSUPPORTED
     assert safeguarded.units[1].support_type == SupportType.UNSUPPORTED
     assert safeguarded.units[2].support_type == SupportType.UNSUPPORTED
+    assert safeguarded.units[4].support_type == SupportType.UNSUPPORTED
+    assert safeguarded.units[5].support_type == SupportType.UNSUPPORTED
+    assert safeguarded.units[6].support_type == SupportType.UNSUPPORTED
+
+
+def test_repair_evidence_spans_fixes_near_exact_model_typos():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.KOR,
+        language=Language.KO,
+        text_clean="어젠 치아 조각해서 발치하고 봉(?) 심어서 (아픕니다!) 더 정줄 놓음.",
+    )
+    result = ExtractionResult(
+        post_id="p1",
+        country=Country.KOR,
+        language=Language.KO,
+        units=[
+            NarrativeUnit(
+                unit_id="p1_u001",
+                domain=CSMDomain.COPING_AND_MANAGEMENT,
+                evidence_span_original="어젠 치아 조각해서 발치하고 봉(?) 심해서 (아픕니다!) 더 정줄 놓음",
+                surface_text_working="拔牙过程疼痛",
+                normalized_concept_en="Dental procedure with pain",
+                concept_status=ConceptStatus.NEW_CANDIDATE,
+                support_type=SupportType.EXPLICIT,
+                assertion=AssertionStatus.PRESENT,
+                confidence=0.9,
+                judge_verdict=JudgeVerdict.ACCEPT,
+            )
+        ],
+    )
+
+    repaired = repair_evidence_spans(result, post)
+
+    assert repaired.units[0].evidence_span_original == "어젠 치아 조각해서 발치하고 봉(?) 심어서 (아픕니다!) 더 정줄 놓음"
 
 
 def test_json_object_parser_strips_thinking_text():
