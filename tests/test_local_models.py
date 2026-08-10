@@ -302,6 +302,38 @@ def test_repair_evidence_spans_fixes_near_exact_model_typos():
     assert repaired.units[0].evidence_span_original == "어젠 치아 조각해서 발치하고 봉(?) 심어서 (아픕니다!) 더 정줄 놓음"
 
 
+def test_repair_evidence_spans_fixes_short_repeated_terminal_punctuation():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.JPN,
+        language=Language.JA,
+        text_clean="歯が痛いぞ!虫歯?!疲れ?!?!",
+    )
+    result = ExtractionResult(
+        post_id="p1",
+        country=Country.JPN,
+        language=Language.JA,
+        units=[
+            NarrativeUnit(
+                unit_id="p1_u001",
+                domain=CSMDomain.PERCEIVED_CAUSE,
+                evidence_span_original="虫歯?!?",
+                surface_text_working="怀疑是蛀牙",
+                normalized_concept_en="Dental caries",
+                concept_status=ConceptStatus.NEW_CANDIDATE,
+                support_type=SupportType.UNSUPPORTED,
+                assertion=AssertionStatus.UNCERTAIN,
+                confidence=0.9,
+                judge_verdict=JudgeVerdict.REJECT,
+            )
+        ],
+    )
+
+    repaired = repair_evidence_spans(result, post)
+
+    assert repaired.units[0].evidence_span_original == "虫歯?!"
+
+
 def test_json_object_parser_strips_thinking_text():
     text = '<think>reasoning that should not be parsed</think>{"unit_verdicts":[]}'
 

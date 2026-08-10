@@ -683,6 +683,9 @@ def _best_near_exact_source_span(span: str, source_text: str) -> str | None:
     """Return a source substring when one small model typo is very likely."""
 
     span = span.strip()
+    punctuation_repaired = _trim_repeated_terminal_punctuation_to_source(span, source_text)
+    if punctuation_repaired is not None:
+        return punctuation_repaired
     if len(span) < 12 or len(source_text) < len(span):
         return None
     best_ratio = 0.0
@@ -699,6 +702,18 @@ def _best_near_exact_source_span(span: str, source_text: str) -> str | None:
                 best_window = window
     if best_ratio >= 0.96:
         return best_window
+    return None
+
+
+def _trim_repeated_terminal_punctuation_to_source(span: str, source_text: str) -> str | None:
+    """Repair short spans where the model duplicated punctuation at the end."""
+
+    terminal_punctuation = "!?！？。.,，…~〜、"
+    candidate = span
+    while len(candidate) >= 2 and candidate[-1] in terminal_punctuation:
+        candidate = candidate[:-1]
+        if candidate and candidate in source_text:
+            return candidate
     return None
 
 
