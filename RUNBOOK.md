@@ -5,19 +5,19 @@ target machine with the `h-ramos` conda environment.
 
 ## Target Hardware Assumption
 
-- NVIDIA RTX 4060 8GB VRAM
-- 18GB system RAM
+- 2x NVIDIA L20 GPUs for the current production server
 - 1TB storage
-- Run one LLM at a time
-- Use quantized local Hugging Face models for production inference
+- Run one LLM role at a time, with `device_policy: auto` allowing
+  Transformers/Accelerate to shard large models across visible GPUs
+- Use 8-bit local Hugging Face models for production smoke/eval inference
 
 ## Model Stack
 
 Configured in `configs/model_stack.yaml`:
 
-- Classifier: `Qwen/Qwen3-4B-Instruct-2507`
-- Extractor: `Qwen/Qwen3-8B`
-- Judge: `google/gemma-4-E2B-it`
+- Classifier: `Qwen/Qwen3-4B-Instruct-2507` at 8-bit
+- Extractor: `Qwen/Qwen3.5-9B` at 8-bit
+- Judge: `google/gemma-4-12b-it` at 8-bit
 - Retriever: `BAAI/bge-m3`
 - Optional reranker diagnostic: `BAAI/bge-reranker-v2-m3`
 
@@ -54,7 +54,8 @@ By default, model snapshots are stored under:
 For example:
 
 ```text
-/hdd-storage/lawrencelcty/huggingface/models/Qwen/Qwen3-8B-Instruct
+/hdd-storage/lawrencelcty/huggingface/models/Qwen/Qwen3.5-9B
+/hdd-storage/lawrencelcty/huggingface/models/google/gemma-4-12b-it
 ```
 
 To override that root:
@@ -160,7 +161,7 @@ PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
 Run a tiny full RAG extraction + judge smoke test:
 
 ```bash
-PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
+CUDA_VISIBLE_DEVICES=0,1 PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
   --input data/raw_eval_holdout_150_no_gold.jsonl \
   --out-dir outputs/hf_full_smoke \
   --backend hf \
@@ -179,7 +180,7 @@ Full-stage outputs:
 Run the leak-checked main automation corpus:
 
 ```bash
-PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
+CUDA_VISIBLE_DEVICES=0,1 PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
   --input data/raw_main_llm_input_no_gold.jsonl \
   --out-dir outputs/main_full_run \
   --backend hf \

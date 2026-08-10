@@ -96,14 +96,20 @@ class LocalCausalLM:
         from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
         quantization_config = self._quantization_config()
-        self._tokenizer = AutoTokenizer.from_pretrained(self.model_path, local_files_only=True, trust_remote_code=True)
-        self._model = AutoModelForCausalLM.from_pretrained(
-            self.model_path,
-            local_files_only=True,
-            trust_remote_code=True,
-            device_map=self.device_map,
-            quantization_config=quantization_config,
-        )
+        try:
+            self._tokenizer = AutoTokenizer.from_pretrained(self.model_path, local_files_only=True, trust_remote_code=True)
+            self._model = AutoModelForCausalLM.from_pretrained(
+                self.model_path,
+                local_files_only=True,
+                trust_remote_code=True,
+                device_map=self.device_map,
+                quantization_config=quantization_config,
+            )
+        except (ValueError, OSError) as exc:
+            if not _looks_like_processor_model_error(exc):
+                raise
+            self._tokenizer = None
+            self._ensure_processor_model_loaded()
 
     def _ensure_processor_model_loaded(self) -> None:
         from transformers import AutoModelForCausalLM, AutoProcessor
@@ -957,6 +963,25 @@ def _extract_label_payload(text: str, required_keys: list[str]) -> dict[str, Any
     if missing:
         raise ValueError(f"Model output missing required label(s) {missing}: {text[:500]!r}")
     return payload
+
+
+def _looks_like_processor_model_error(exc: Exception) -> bool:
+    """Return whether causal loading likely failed because the model needs AutoProcessor."""
+
+    text = str(exc).lower()
+    return any(
+        cue in text
+        for cue in [
+            "automodelforcausallm",
+            "multimodal",
+            "vision",
+            "image",
+            "processor",
+            "not recognized",
+            "unrecognized configuration",
+            "model type",
+        ]
+    )
 
 
 def apply_classification_safeguards(

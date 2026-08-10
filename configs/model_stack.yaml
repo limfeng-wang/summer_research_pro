@@ -3,19 +3,19 @@ model_stack:
     role: hierarchical relevance and R1 classification
     model_id: Qwen/Qwen3-4B-Instruct-2507
     backend: transformers
-    quantization: 4bit
+    quantization: 8bit
     device_policy: auto
   extractor:
     role: CSM evidence-unit extraction
-    model_id: Qwen/Qwen3-8B
+    model_id: Qwen/Qwen3.5-9B
     backend: transformers
-    quantization: 4bit
+    quantization: 8bit
     device_policy: auto
   judge:
     role: LLM-as-Judge
-    model_id: google/gemma-4-E2B-it
+    model_id: google/gemma-4-12b-it
     backend: transformers-gemma4
-    quantization: 4bit
+    quantization: 8bit
     device_policy: auto
   retriever:
     role: multilingual dense retrieval
