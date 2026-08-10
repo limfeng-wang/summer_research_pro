@@ -14,14 +14,21 @@ def test_hf_manifest_lists_only_active_models_when_reranker_disabled(tmp_path):
             {
                 "model_stack": {
                     "classifier": {
+                        "role": "hierarchical relevance and R1 classification",
                         "model_id": "Qwen/Qwen3-4B-Instruct-2507",
                         "backend": "transformers",
+                        "quantization": "8bit",
+                        "device_policy": "auto",
                     },
                     "judge": {
+                        "role": "LLM-as-Judge",
                         "model_id": "google/gemma-4-E2B-it",
                         "backend": "transformers-gemma4",
+                        "quantization": "8bit",
+                        "device_policy": "cuda:1",
                     },
                     "retriever": {
+                        "role": "multilingual dense retrieval",
                         "model_id": "BAAI/bge-m3",
                         "backend": "sentence-transformers",
                     },
@@ -41,7 +48,19 @@ def test_hf_manifest_lists_only_active_models_when_reranker_disabled(tmp_path):
 
     assert "reranker" not in manifest["models"]
     assert manifest["active_model_roles"] == ["classifier", "judge", "retriever"]
+    assert manifest["models"]["classifier"]["role"] == "hierarchical relevance and R1 classification"
+    assert manifest["models"]["classifier"]["quantization"] == "8bit"
+    assert manifest["models"]["classifier"]["device_policy"] == "auto"
+    assert manifest["models"]["judge"]["role"] == "LLM-as-Judge"
+    assert manifest["models"]["judge"]["quantization"] == "8bit"
+    assert manifest["models"]["judge"]["device_policy"] == "cuda:1"
+    assert manifest["models"]["retriever"]["role"] == "multilingual dense retrieval"
+    assert manifest["models"]["retriever"]["quantization"] == ""
+    assert manifest["models"]["retriever"]["device_policy"] == "auto"
     assert manifest["disabled_optional_models"]["reranker"]["model_id"] == "BAAI/bge-reranker-v2-m3"
+    assert manifest["disabled_optional_models"]["reranker"]["role"] == "reranker"
+    assert manifest["disabled_optional_models"]["reranker"]["quantization"] == ""
+    assert manifest["disabled_optional_models"]["reranker"]["device_policy"] == "auto"
 
 
 def test_hf_manifest_lists_reranker_as_active_when_enabled(tmp_path):
@@ -51,12 +70,16 @@ def test_hf_manifest_lists_reranker_as_active_when_enabled(tmp_path):
             {
                 "model_stack": {
                     "retriever": {
+                        "role": "multilingual dense retrieval",
                         "model_id": "BAAI/bge-m3",
                         "backend": "sentence-transformers",
                     },
                     "reranker": {
+                        "role": "multilingual reranking",
                         "model_id": "BAAI/bge-reranker-v2-m3",
                         "backend": "FlagEmbedding",
+                        "quantization": "fp16",
+                        "device_policy": "cuda:0",
                     },
                 },
                 "runtime": {"use_reranker": True},
@@ -70,6 +93,9 @@ def test_hf_manifest_lists_reranker_as_active_when_enabled(tmp_path):
 
     assert "reranker" in manifest["models"]
     assert manifest["active_model_roles"] == ["retriever", "reranker"]
+    assert manifest["models"]["reranker"]["role"] == "multilingual reranking"
+    assert manifest["models"]["reranker"]["quantization"] == "fp16"
+    assert manifest["models"]["reranker"]["device_policy"] == "cuda:0"
     assert manifest["disabled_optional_models"] == {}
 
 

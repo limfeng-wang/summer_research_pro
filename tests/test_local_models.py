@@ -9,6 +9,7 @@ from dental_ai.local_models import (
     apply_commercial_safeguard,
     apply_generic_procedure_demote_safeguard,
     apply_relevance_safeguard,
+    apply_short_lived_pain_narrative_safeguard,
     apply_weak_commercial_demote_safeguard,
     has_lived_pain_burden_sequence,
     has_strong_commercial_evidence,
@@ -490,7 +491,7 @@ def test_weak_commercial_demote_safeguard_turns_personal_cost_post_back_to_c3():
         ),
     )
 
-    assert apply_weak_commercial_demote_safeguard(post, ContentFunctionLabel.C4) == ContentFunctionLabel.C1
+    assert apply_weak_commercial_demote_safeguard(post, ContentFunctionLabel.C4) == ContentFunctionLabel.C3
     assert apply_classification_safeguards(post, ExperiencerLabel.E1, ContentFunctionLabel.C4) == (
         ExperiencerLabel.E1,
         ContentFunctionLabel.C3,
@@ -531,6 +532,147 @@ def test_generic_procedure_demote_safeguard_demotes_wisdom_tooth_logistics():
     assert apply_generic_procedure_demote_safeguard(post, ExperiencerLabel.E1, ContentFunctionLabel.C1) == (
         ContentFunctionLabel.C3
     )
+
+
+def test_short_lived_pain_narrative_safeguard_promotes_meaningful_c5_to_c1():
+    posts = [
+        SourcePost(
+            post_id="j1",
+            country=Country.JPN,
+            language=Language.JA,
+            text_clean="歯が痛くて眠れないので 早く病院あいてよぉぉぉ...",
+        ),
+        SourcePost(
+            post_id="j2",
+            country=Country.JPN,
+            language=Language.JA,
+            text_clean="歯が痛くて咽び泣いてる。",
+        ),
+        SourcePost(
+            post_id="k1",
+            country=Country.KOR,
+            language=Language.KO,
+            text_clean="갑자기 개 큰 치통 생겨서 괴로움",
+        ),
+        SourcePost(
+            post_id="c1",
+            country=Country.CHI,
+            language=Language.ZH,
+            text_clean="昨晚疼的一晚上没合眼 但是不想吃药",
+        ),
+    ]
+
+    for post in posts:
+        assert apply_short_lived_pain_narrative_safeguard(
+            post,
+            ExperiencerLabel.E1,
+            ContentFunctionLabel.C5,
+        ) == ContentFunctionLabel.C1
+        assert apply_classification_safeguards(post, ExperiencerLabel.E1, ContentFunctionLabel.C5) == (
+            ExperiencerLabel.E1,
+            ContentFunctionLabel.C1,
+        )
+
+
+def test_classification_safeguards_promote_omitted_subject_lived_pain_to_e1_c1():
+    post = SourcePost(
+        post_id="c1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean="根管治疗第三天\n牙疼真要命,治疗也很疼,想把那颗坏牙直接拔掉,大家好好刷牙吧",
+    )
+
+    assert apply_classification_safeguards(post, ExperiencerLabel.E3, ContentFunctionLabel.C3) == (
+        ExperiencerLabel.E1,
+        ContentFunctionLabel.C1,
+    )
+
+
+def test_classification_safeguards_keep_generic_pain_rhetoric_as_e3_c3():
+    post = SourcePost(
+        post_id="c1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean="牙痛不是病,痛起来真要命! 弄清楚牙痛的真正原因才能对症下药。",
+    )
+
+    assert apply_classification_safeguards(post, ExperiencerLabel.E3, ContentFunctionLabel.C3) == (
+        ExperiencerLabel.E3,
+        ContentFunctionLabel.C3,
+    )
+
+
+def test_classification_safeguards_demote_weak_c4_lived_pain_to_c1():
+    post = SourcePost(
+        post_id="c1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean="我已中招\n昨晚疼的一晚上没合眼\n但是不想吃药\n希望借着这个病毒瘦上十来斤#牙疼 #病毒",
+    )
+
+    assert apply_classification_safeguards(post, ExperiencerLabel.E1, ContentFunctionLabel.C4) == (
+        ExperiencerLabel.E1,
+        ContentFunctionLabel.C1,
+    )
+
+
+def test_classification_safeguards_keep_procedure_heavy_posts_c3_after_short_pain_rule():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean=(
+            "拔牙×2, 第一次手术费975, 第二次手术费1300左右。"
+            "作者本人的是阻生齿, 有龋齿, 不痛, 没发炎。"
+            "首先关于挂号的小tips: 可以提前预约挂号。"
+            "拔牙后的注意事项: 拔完牙24h内可以冰敷一下, 镇静止痛。"
+        ),
+    )
+
+    assert apply_classification_safeguards(post, ExperiencerLabel.E1, ContentFunctionLabel.C1) == (
+        ExperiencerLabel.E1,
+        ContentFunctionLabel.C3,
+    )
+
+
+def test_classification_safeguards_keep_spray_advertorial_as_c4():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean="别慌!这支牙髓炎喷剂来啦。草本植萃, 使用超简单, 喷头对准疼痛牙齿覆盖喷涂。",
+    )
+
+    assert apply_classification_safeguards(post, ExperiencerLabel.E3, ContentFunctionLabel.C4) == (
+        ExperiencerLabel.E3,
+        ContentFunctionLabel.C4,
+    )
+
+
+def test_short_lived_pain_narrative_safeguard_preserves_generic_c3_and_c4():
+    generic = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean="牙痛急救办法: 冰敷、盐水漱口、及时就医。",
+    )
+    advertorial = SourcePost(
+        post_id="p2",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean="牙疼后喝了一包芬必得, 不愧是大品牌, #芬必得 #牙痛止痛药",
+    )
+
+    assert apply_short_lived_pain_narrative_safeguard(
+        generic,
+        ExperiencerLabel.E1,
+        ContentFunctionLabel.C3,
+    ) == ContentFunctionLabel.C3
+    assert apply_short_lived_pain_narrative_safeguard(
+        advertorial,
+        ExperiencerLabel.E1,
+        ContentFunctionLabel.C4,
+    ) == ContentFunctionLabel.C4
 
 
 def test_classification_safeguards_preserve_first_person_advertorial_as_e1_c4():

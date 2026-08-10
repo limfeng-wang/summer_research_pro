@@ -997,6 +997,7 @@ def apply_classification_safeguards(
     content_function = apply_help_seeking_safeguard(post, content_function)
     content_function = apply_personal_narrative_safeguard(post, experiencer, content_function)
     content_function = apply_generic_procedure_demote_safeguard(post, experiencer, content_function)
+    content_function = apply_short_lived_pain_narrative_safeguard(post, experiencer, content_function)
     experiencer = apply_generic_knowledge_experiencer_safeguard(post, experiencer, content_function)
     return experiencer, content_function
 
@@ -1113,6 +1114,13 @@ def has_strong_commercial_evidence(post: SourcePost) -> bool:
         "好用",
         "智能",
         "自动",
+        "这支",
+        "来啦",
+        "草本",
+        "植萃",
+        "使用超简单",
+        "喷头",
+        "覆盖喷涂",
         "更干净",
         "新科技",
         "护龈",
@@ -1229,6 +1237,9 @@ def apply_weak_commercial_demote_safeguard(post: SourcePost, label: ContentFunct
     if label != ContentFunctionLabel.C4 or has_strong_commercial_evidence(post):
         return label
 
+    if _looks_like_generic_procedure_without_lived_burden(post):
+        return ContentFunctionLabel.C3
+
     text = post.combined_source_text
     first_person_cues = ["我", "我的", "本人", "作者本人", "第一次", "第二次", "나는", "제가", "내 "]
     care_logistics_cues = ["挂号", "签到", "拍片", "缴费", "手术费", "医保", "报销", "麻醉", "拔完", "拔牙后", "价格"]
@@ -1248,6 +1259,8 @@ def apply_weak_commercial_demote_safeguard(post: SourcePost, label: ContentFunct
     ]
 
     if any(cue in text for cue in first_person_cues) and any(cue in text for cue in care_logistics_cues):
+        return ContentFunctionLabel.C1
+    if _has_short_lived_pain_narrative_signal(text) and not _looks_like_generic_health_education(text):
         return ContentFunctionLabel.C1
     if any(cue in text for cue in general_knowledge_cues):
         return ContentFunctionLabel.C3
@@ -1317,6 +1330,15 @@ def apply_generic_procedure_demote_safeguard(
         return label
     if has_strong_commercial_evidence(post) or has_lived_pain_burden_sequence(post):
         return label
+    if _looks_like_generic_procedure_without_lived_burden(post):
+        return ContentFunctionLabel.C3
+    return label
+
+
+def _looks_like_generic_procedure_without_lived_burden(post: SourcePost) -> bool:
+    if has_strong_commercial_evidence(post) or has_lived_pain_burden_sequence(post):
+        return False
+
     text = post.combined_source_text
     procedural_cues = [
         "挂号",
@@ -1355,9 +1377,7 @@ def apply_generic_procedure_demote_safeguard(
         "可以",
         "需要",
     ]
-    if sum(cue in text for cue in procedural_cues) >= 3 and any(cue in text for cue in generic_structure_cues):
-        return ContentFunctionLabel.C3
-    return label
+    return sum(cue in text for cue in procedural_cues) >= 3 and any(cue in text for cue in generic_structure_cues)
 
 
 def has_lived_pain_burden_sequence(post: SourcePost) -> bool:
@@ -1442,6 +1462,124 @@ def has_lived_pain_burden_sequence(post: SourcePost) -> bool:
     )
 
 
+def apply_short_lived_pain_narrative_safeguard(
+    post: SourcePost,
+    experiencer: ExperiencerLabel,
+    label: ContentFunctionLabel,
+) -> ContentFunctionLabel:
+    """Promote short but meaningful lived pain posts from C3/C5 to C1."""
+
+    if label not in {ContentFunctionLabel.C3, ContentFunctionLabel.C5}:
+        return label
+    if experiencer not in {ExperiencerLabel.E1, ExperiencerLabel.E2}:
+        return label
+    if has_strong_commercial_evidence(post):
+        return label
+    if _looks_like_generic_procedure_without_lived_burden(post):
+        return label
+    text = post.combined_source_text
+    if _looks_like_generic_health_education(text):
+        return label
+    if _has_short_lived_pain_narrative_signal(text):
+        return ContentFunctionLabel.C1
+    return label
+
+
+def _has_short_lived_pain_narrative_signal(text: str) -> bool:
+    pain = [
+        "牙疼",
+        "牙痛",
+        "疼",
+        "痛",
+        "歯が痛",
+        "歯痛",
+        "痛い",
+        " 치통",
+        "치통",
+        "이가 아",
+        "아프",
+        "아픕",
+    ]
+    burden_or_narrative = [
+        "睡不着",
+        "一晚上没合眼",
+        "吃不了",
+        "哭",
+        "真要命",
+        "受不了",
+        "难受",
+        "疼的一",
+        "疼得",
+        "想把",
+        "不想吃药",
+        "吃了药",
+        "虫歯",
+        "知覚過敏",
+        "眠れない",
+        "咽び泣",
+        "泣いて",
+        "目が覚め",
+        "痛すぎ",
+        "痛いぞ",
+        "痛いい",
+        "鎮痛剤",
+        "緩和",
+        "病院あいて",
+        "못 먹",
+        "괴로움",
+        "개 큰",
+        "시련",
+        "마카롱 못",
+        "갑자기",
+    ]
+    return any(cue in text for cue in pain) and any(cue in text for cue in burden_or_narrative)
+
+
+def _looks_like_generic_health_education(text: str) -> bool:
+    education_cues = [
+        "什么是",
+        "常见病因",
+        "症状",
+        "护理",
+        "治疗",
+        "方法",
+        "步骤",
+        "指南",
+        "攻略",
+        "建议",
+        "预防",
+        "保护牙齿",
+        "原因",
+        "特徴",
+        "方法",
+        "原因",
+        "予防",
+        "치료",
+        "방법",
+        "원인",
+        "예방",
+    ]
+    first_person_pain = [
+        "我牙",
+        "我的牙",
+        "昨晚",
+        "睡不着",
+        "没合眼",
+        "想把",
+        "不想吃药",
+        "昨日今日",
+        "歯が痛くて",
+        "歯痛",
+        "咽び泣",
+        "眠れない",
+        "치통 때문에",
+        "갑자기",
+        "괴로움",
+        "개 큰",
+    ]
+    return any(cue in text for cue in education_cues) and not any(cue in text for cue in first_person_pain)
+
+
 def apply_generic_knowledge_experiencer_safeguard(
     post: SourcePost,
     experiencer: ExperiencerLabel,
@@ -1497,7 +1635,32 @@ def has_specific_author_case(text: str) -> bool:
         "疼",
         "痛",
     ]
-    return any(cue in text for cue in author_case_cues) and any(cue in text for cue in event_cues)
+    if any(cue in text for cue in author_case_cues) and any(cue in text for cue in event_cues):
+        return True
+    return _has_omitted_author_lived_pain_signal(text) and not _looks_like_generic_health_education(text)
+
+
+def _has_omitted_author_lived_pain_signal(text: str) -> bool:
+    pain = ["牙疼", "牙痛", "疼", "痛", "歯が痛", "歯痛", "痛い", "치통", "이가 아", "아프", "아픕"]
+    lived_episode = [
+        "昨晚",
+        "前段时间",
+        "第三天",
+        "一晚上没合眼",
+        "睡不着",
+        "吃不了",
+        "想把",
+        "不想吃药",
+        "吃了药",
+        "咽び泣",
+        "眠れない",
+        "目が覚め",
+        "갑자기",
+        "못 먹",
+        "괴로움",
+        "개 큰",
+    ]
+    return any(cue in text for cue in pain) and any(cue in text for cue in lived_episode)
 
 
 def has_specific_other_case(text: str) -> bool:
@@ -1522,6 +1685,7 @@ __all__ = [
     "apply_generic_knowledge_experiencer_safeguard",
     "apply_help_seeking_safeguard",
     "apply_personal_narrative_safeguard",
+    "apply_short_lived_pain_narrative_safeguard",
     "apply_specific_experiencer_safeguard",
     "apply_weak_commercial_demote_safeguard",
     "has_named_clinic_or_service_tag",

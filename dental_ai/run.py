@@ -411,16 +411,22 @@ def _hf_manifest_config(*, config_path: str, models_root: str) -> dict[str, Any]
     for role in active_roles:
         spec = stack.spec(role)
         models[role] = {
+            "role": spec.role,
             "model_id": spec.model_id,
             "backend": spec.backend,
+            "quantization": spec.quantization,
+            "device_policy": spec.device_policy,
             "local_path": str(spec.local_path(models_root)),
         }
     disabled_optional_models = {}
     for role in optional_roles:
         spec = stack.spec(role)
         disabled_optional_models[role] = {
+            "role": spec.role,
             "model_id": spec.model_id,
             "backend": spec.backend,
+            "quantization": spec.quantization,
+            "device_policy": spec.device_policy,
             "local_path": str(spec.local_path(models_root)),
             "disabled_by": "runtime.use_reranker=false" if role == "reranker" else "runtime",
         }
