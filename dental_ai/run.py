@@ -188,6 +188,8 @@ def _load_output_map(path: Path) -> dict[str, "PipelineOutput"]:
             trace = PipelineTrace(
                 stages=list(trace_payload.get("stages", [])),
                 validation=validation,
+                raw_labels=dict(trace_payload.get("raw_labels", {})),
+                postprocessing_rules=list(trace_payload.get("postprocessing_rules", [])),
             )
         else:
             result = ExtractionResult.model_validate(payload)
@@ -231,9 +233,9 @@ def _run_hf(
         LocalJudge,
         LocalR1Classifier,
         LocalRelevanceClassifier,
-        apply_classification_safeguards,
         local_lm_for_role,
     )
+    from dental_ai.classification_postprocess import apply_rec_postprocessing
     from dental_ai.model_config import load_model_stack_config
     from dental_ai.pipeline import PipelineConfig, PipelineOutput, PipelineTrace
     from dental_ai.rag import GoldRAGRetriever, retrieval_trace_rows
@@ -274,17 +276,23 @@ def _run_hf(
                     current_stage = "combined_classification"
                     relevance_label, experiencer, content_function = combined.classify(post)
                     stages = ["combined_classification"]
+                    raw_labels = dict(combined.last_raw_labels)
+                    postprocessing_rules = list(combined.last_postprocess_rules)
                 else:
                     stages = ["relevance"]
                     relevance_label = relevance.classify_relevance(post)
                     experiencer = None
                     content_function = None
+                    raw_labels = dict(relevance.last_raw_labels)
+                    postprocessing_rules = list(relevance.last_postprocess_rules)
                 result = ExtractionResult.empty_for_post(post).model_copy(update={"relevance_label": relevance_label})
                 if relevance_label == RelevanceLabel.R1:
                     if classification_mode == "separate":
                         current_stage = "r1_classification"
                         experiencer, content_function = r1.classify_r1(post)
                         stages.append("r1_classification")
+                        raw_labels.update(r1.last_raw_labels)
+                        postprocessing_rules.extend(r1.last_postprocess_rules)
                     result = result.model_copy(
                         update={
                             "experiencer_label": experiencer,
@@ -293,7 +301,15 @@ def _run_hf(
                     )
                 current_stage = "validation"
                 validation = validate_hierarchical_result(result, post)
-                output = PipelineOutput(result=result, trace=PipelineTrace(stages=stages, validation=validation))
+                output = PipelineOutput(
+                    result=result,
+                    trace=PipelineTrace(
+                        stages=stages,
+                        validation=validation,
+                        raw_labels=raw_labels,
+                        postprocessing_rules=postprocessing_rules,
+                    ),
+                )
                 classified_by_post_id[post.post_id] = output
                 outputs_by_post_id[post.post_id] = output
                 _write_output_line(classified_checkpoint_file, output)
@@ -336,7 +352,7 @@ def _run_hf(
             output = _apply_pre_extraction_classification_safeguards(
                 post,
                 output,
-                apply_classification_safeguards=apply_classification_safeguards,
+                apply_rec_postprocessing=apply_rec_postprocessing,
                 validate_hierarchical_result=validate_hierarchical_result,
             )
             output_by_post_id[post.post_id] = output
@@ -371,7 +387,7 @@ def _run_hf(
                 stages = output.trace.stages + ["rag_retrieval", "csm_extraction"]
                 output_by_post_id[post.post_id] = PipelineOutput(
                     result=extracted,
-                    trace=PipelineTrace(stages=stages, validation=validation),
+                    trace=_trace_with(output.trace, stages=stages, validation=validation),
                 )
                 extracted_by_post_id[post.post_id] = output_by_post_id[post.post_id]
                 _write_output_line(extracted_checkpoint_file, output_by_post_id[post.post_id])
@@ -404,7 +420,7 @@ def _run_hf(
                 validation = validate_hierarchical_result(judged, post)
                 output_by_post_id[post.post_id] = PipelineOutput(
                     result=judged,
-                    trace=PipelineTrace(stages=output.trace.stages + ["judge"], validation=validation),
+                    trace=_trace_with(output.trace, stages=output.trace.stages + ["judge"], validation=validation),
                 )
                 _write_final_output(
                     annotations_file,
@@ -504,6 +520,8 @@ def _write_output_line(file: TextIO, output: object) -> None:
             "result": result.model_dump(mode="json"),
             "trace": {
                 "stages": list(trace.stages),
+                "raw_labels": dict(getattr(trace, "raw_labels", {})),
+                "postprocessing_rules": list(getattr(trace, "postprocessing_rules", [])),
                 "validation": {
                     "ok": validation.ok,
                     "issues": [
@@ -533,6 +551,15 @@ def _write_final_output(
 def _write_jsonl_line(file: TextIO, payload: dict[str, Any]) -> None:
     file.write(json.dumps(payload, ensure_ascii=False) + "\n")
     file.flush()
+
+
+def _trace_with(trace: object, *, stages: list[str], validation: ValidationReport) -> object:
+    return trace.__class__(
+        stages=stages,
+        validation=validation,
+        raw_labels=dict(getattr(trace, "raw_labels", {})),
+        postprocessing_rules=list(getattr(trace, "postprocessing_rules", [])),
+    )
 
 
 def _error_record(post: SourcePost, *, index: int, stage: str, exc: Exception) -> dict[str, Any]:
@@ -590,10 +617,27 @@ def _write_manifest(
         "errors_path": "errors.jsonl",
         "validation_ok": sum(1 for output in output_list if output.trace.validation.ok),
         "validation_failed": sum(1 for output in output_list if not output.trace.validation.ok),
+        "postprocessing_rule_counts": _postprocessing_rule_counts(output_list),
     }
     if backend == "hf":
         manifest["hf_config"] = _hf_manifest_config(config_path=config_path, models_root=models_root)
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _postprocessing_rule_counts(outputs: Iterable[object]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for output in outputs:
+        trace = getattr(output, "trace", None)
+        if trace is None:
+            continue
+        for rule in getattr(trace, "postprocessing_rules", []):
+            if not isinstance(rule, dict):
+                continue
+            name = str(rule.get("rule", ""))
+            if not name:
+                continue
+            counts[name] = counts.get(name, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 def _hf_manifest_config(*, config_path: str, models_root: str) -> dict[str, Any]:
@@ -667,17 +711,28 @@ def _apply_pre_extraction_classification_safeguards(
     post: SourcePost,
     output: object,
     *,
-    apply_classification_safeguards: object,
+    apply_rec_postprocessing: object,
     validate_hierarchical_result: object,
 ) -> object:
     result = output.result
     if result.relevance_label != RelevanceLabel.R1 or not result.experiencer_label or not result.content_function:
         return output
-    experiencer, content_function = apply_classification_safeguards(
+    processed = apply_rec_postprocessing(
         post,
+        result.relevance_label,
         result.experiencer_label,
         result.content_function,
     )
+    experiencer = processed.experiencer_label
+    content_function = processed.content_function
+    if experiencer is None or content_function is None:
+        return output
+    existing_rules = list(getattr(output.trace, "postprocessing_rules", []))
+    new_rules = [
+        rule
+        for rule in processed.rule_dicts
+        if rule not in existing_rules
+    ]
     if experiencer == result.experiencer_label and content_function == result.content_function:
         return output
     result = result.model_copy(
@@ -691,6 +746,8 @@ def _apply_pre_extraction_classification_safeguards(
         trace=output.trace.__class__(
             stages=output.trace.stages + ["classification_safeguards"],
             validation=validate_hierarchical_result(result, post),
+            raw_labels=dict(getattr(output.trace, "raw_labels", {})),
+            postprocessing_rules=existing_rules + new_rules,
         ),
     )
 

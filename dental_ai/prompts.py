@@ -83,7 +83,7 @@ COMPACT EXAMPLES
 - "我妈牙疼到吃不了饭" -> R1 + E2 + C1.
 - "牙痛痛痛!!!" -> R1 + E1 + C5 if it is only a brief reaction with no meaningful narrative or help request.
 
-Return strict JSON only:
+Return compact strict JSON only. Put the three labels first. Evidence values must be short exact phrases, max 30 source characters each. Do not copy paragraphs.
 {
   "relevance_label": "R1|R0|RU",
   "experiencer_label": "E1|E2|E3|null",

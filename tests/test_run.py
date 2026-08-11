@@ -1,7 +1,7 @@
 import json
 
 from dental_ai.pipeline import PipelineOutput, PipelineTrace
-from dental_ai.local_models import apply_classification_safeguards
+from dental_ai.classification_postprocess import apply_rec_postprocessing
 from dental_ai.run import (
     _apply_pre_extraction_classification_safeguards,
     _hf_manifest_config,
@@ -123,7 +123,20 @@ def test_output_checkpoint_roundtrip_preserves_trace(tmp_path):
     result = ExtractionResult.empty_for_post(post).model_copy(update={"relevance_label": RelevanceLabel.R1})
     output = PipelineOutput(
         result=result,
-        trace=PipelineTrace(stages=["combined_classification"], validation=validate_hierarchical_result(result, post)),
+        trace=PipelineTrace(
+            stages=["combined_classification"],
+            validation=validate_hierarchical_result(result, post),
+            raw_labels={"relevance_label": "R1"},
+            postprocessing_rules=[
+                {
+                    "rule": "relevance.toothache_evidence_required",
+                    "field": "relevance_label",
+                    "before": "R1",
+                    "after": "R0",
+                    "reason": "test",
+                }
+            ],
+        ),
     )
     checkpoint = tmp_path / "classified.jsonl"
 
@@ -133,6 +146,8 @@ def test_output_checkpoint_roundtrip_preserves_trace(tmp_path):
 
     assert loaded["p1"].result.relevance_label == RelevanceLabel.R1
     assert loaded["p1"].trace.stages == ["combined_classification"]
+    assert loaded["p1"].trace.raw_labels == {"relevance_label": "R1"}
+    assert loaded["p1"].trace.postprocessing_rules[0]["rule"] == "relevance.toothache_evidence_required"
     assert not loaded["p1"].trace.validation.ok
     assert loaded["p1"].trace.validation.issues[0].code == "missing_experiencer"
 
@@ -194,10 +209,11 @@ def test_pre_extraction_safeguard_blocks_generic_wisdom_tooth_logistics():
     guarded = _apply_pre_extraction_classification_safeguards(
         post,
         output,
-        apply_classification_safeguards=apply_classification_safeguards,
+        apply_rec_postprocessing=apply_rec_postprocessing,
         validate_hierarchical_result=validate_hierarchical_result,
     )
 
     assert guarded.result.content_function == ContentFunctionLabel.C3
     assert "classification_safeguards" in guarded.trace.stages
+    assert guarded.trace.postprocessing_rules[0]["rule"] == "content.generic_procedure_demote"
     assert not _should_extract_csm_result(guarded.result, object())

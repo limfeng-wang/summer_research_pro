@@ -77,6 +77,33 @@ def test_combined_classifier_returns_relevance_and_r1_labels_with_safeguards():
     assert content_function == ContentFunctionLabel.C1
 
 
+def test_combined_classifier_recovers_r1_labels_from_truncated_evidence_json():
+    class StubLM:
+        def generate_json_text(self, system_prompt, user_payload, config):
+            return (
+                '{\n'
+                '  "relevance_label": "R1",\n'
+                '  "experiencer_label": "E1",\n'
+                '  "content_function": "C4",\n'
+                '  "relevance_evidence": "牙痛,真的太难受了",\n'
+                '  "experiencer_evidence": "我和牙说能不能别疼了",\n'
+                '  "content_function_evidence": "牙发炎痛到哭,这个诀窍'
+            )
+
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean="牙痛,真的太难受了。我和牙说能不能别疼了。我立马下单牙痛宁喷剂,这支喷剂真的好用。",
+    )
+
+    relevance, experiencer, content_function = LocalCombinedClassifier(StubLM()).classify(post)
+
+    assert relevance == RelevanceLabel.R1
+    assert experiencer == ExperiencerLabel.E1
+    assert content_function == ContentFunctionLabel.C4
+
+
 def test_extractor_units_are_reset_to_needs_human_review_before_judge():
     result = ExtractionResult(
         post_id="p1",

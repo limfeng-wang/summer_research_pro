@@ -243,6 +243,8 @@ class LocalCausalLM:
 class LocalRelevanceClassifier:
     def __init__(self, lm: LocalCausalLM):
         self.lm = lm
+        self.last_postprocess_rules: list[dict[str, str | None]] = []
+        self.last_raw_labels: dict[str, str | None] = {}
 
     def classify_relevance(self, post: SourcePost) -> RelevanceLabel:
         text = self.lm.generate_json_text(
@@ -251,7 +253,13 @@ class LocalRelevanceClassifier:
             GenerationConfig(max_new_tokens=64),
         )
         payload = _extract_label_payload(text, ["relevance_label"])
-        return apply_relevance_safeguard(post, RelevanceLabel(payload["relevance_label"]))
+        from dental_ai.classification_postprocess import apply_relevance_postprocessing
+
+        raw_relevance = RelevanceLabel(payload["relevance_label"])
+        processed = apply_relevance_postprocessing(post, raw_relevance)
+        self.last_raw_labels = {"relevance_label": raw_relevance.value}
+        self.last_postprocess_rules = processed.rule_dicts
+        return processed.relevance_label
 
 
 class LocalR1Classifier:
@@ -265,6 +273,8 @@ class LocalR1Classifier:
         self.lm = lm
         self.classification_examples = classification_examples or []
         self.fewshot_k = fewshot_k
+        self.last_postprocess_rules: list[dict[str, str | None]] = []
+        self.last_raw_labels: dict[str, str | None] = {}
 
     def classify_r1(self, post: SourcePost) -> tuple[ExperiencerLabel, ContentFunctionLabel]:
         text = self.lm.generate_json_text(
@@ -280,9 +290,20 @@ class LocalR1Classifier:
             GenerationConfig(max_new_tokens=192),
         )
         payload = _extract_label_payload(text, ["experiencer_label", "content_function"])
-        experiencer = ExperiencerLabel(payload["experiencer_label"])
-        content_function = ContentFunctionLabel(payload["content_function"])
-        return apply_classification_safeguards(post, experiencer, content_function)
+        raw_experiencer = ExperiencerLabel(payload["experiencer_label"])
+        raw_content_function = ContentFunctionLabel(payload["content_function"])
+        from dental_ai.classification_postprocess import apply_rec_postprocessing
+
+        processed = apply_rec_postprocessing(post, RelevanceLabel.R1, raw_experiencer, raw_content_function)
+        self.last_raw_labels = {
+            "relevance_label": RelevanceLabel.R1.value,
+            "experiencer_label": raw_experiencer.value,
+            "content_function": raw_content_function.value,
+        }
+        self.last_postprocess_rules = processed.rule_dicts
+        if processed.experiencer_label is None or processed.content_function is None:
+            raise ValueError(f"R1 classifier post-processing removed E/C labels: {text[:500]!r}")
+        return processed.experiencer_label, processed.content_function
 
 
 class LocalCombinedClassifier:
@@ -296,6 +317,8 @@ class LocalCombinedClassifier:
         self.lm = lm
         self.classification_examples = classification_examples or []
         self.fewshot_k = fewshot_k
+        self.last_postprocess_rules: list[dict[str, str | None]] = []
+        self.last_raw_labels: dict[str, str | None] = {}
 
     def classify(self, post: SourcePost) -> tuple[RelevanceLabel, ExperiencerLabel | None, ContentFunctionLabel | None]:
         text = self.lm.generate_json_text(
@@ -308,19 +331,32 @@ class LocalCombinedClassifier:
                     k=self.fewshot_k,
                 ),
             },
-            GenerationConfig(max_new_tokens=256),
+            GenerationConfig(max_new_tokens=192),
         )
         payload = _extract_label_payload(text, ["relevance_label"])
-        relevance = apply_relevance_safeguard(post, RelevanceLabel(payload["relevance_label"]))
+        from dental_ai.classification_postprocess import apply_rec_postprocessing, apply_relevance_postprocessing
+
+        raw_relevance = RelevanceLabel(payload["relevance_label"])
+        relevance_processed = apply_relevance_postprocessing(post, raw_relevance)
+        relevance = relevance_processed.relevance_label
         if relevance != RelevanceLabel.R1:
+            self.last_raw_labels = {"relevance_label": raw_relevance.value}
+            self.last_postprocess_rules = relevance_processed.rule_dicts
             return relevance, None, None
+        payload.update(_extract_label_payload(text, ["experiencer_label", "content_function"]))
         try:
-            experiencer = ExperiencerLabel(payload["experiencer_label"])
-            content_function = ContentFunctionLabel(payload["content_function"])
+            raw_experiencer = ExperiencerLabel(payload["experiencer_label"])
+            raw_content_function = ContentFunctionLabel(payload["content_function"])
         except (KeyError, TypeError, ValueError) as exc:
             raise ValueError(f"Combined classifier returned R1 without valid E/C labels: {text[:500]!r}") from exc
-        experiencer, content_function = apply_classification_safeguards(post, experiencer, content_function)
-        return relevance, experiencer, content_function
+        processed = apply_rec_postprocessing(post, relevance, raw_experiencer, raw_content_function)
+        self.last_raw_labels = {
+            "relevance_label": raw_relevance.value,
+            "experiencer_label": raw_experiencer.value,
+            "content_function": raw_content_function.value,
+        }
+        self.last_postprocess_rules = relevance_processed.rule_dicts + processed.rule_dicts
+        return relevance, processed.experiencer_label, processed.content_function
 
 
 class LocalCSMExtractor:
@@ -1104,17 +1140,14 @@ def apply_classification_safeguards(
     experiencer: ExperiencerLabel,
     content_function: ContentFunctionLabel,
 ) -> tuple[ExperiencerLabel, ContentFunctionLabel]:
-    """Apply deterministic, auditable safeguards to common boundary errors."""
+    """Compatibility wrapper for deterministic R/E/C post-processing."""
 
-    experiencer = apply_specific_experiencer_safeguard(post, experiencer)
-    content_function = apply_commercial_safeguard(post, content_function)
-    content_function = apply_weak_commercial_demote_safeguard(post, content_function)
-    content_function = apply_help_seeking_safeguard(post, content_function)
-    content_function = apply_personal_narrative_safeguard(post, experiencer, content_function)
-    content_function = apply_generic_procedure_demote_safeguard(post, experiencer, content_function)
-    content_function = apply_short_lived_pain_narrative_safeguard(post, experiencer, content_function)
-    experiencer = apply_generic_knowledge_experiencer_safeguard(post, experiencer, content_function)
-    return experiencer, content_function
+    from dental_ai.classification_postprocess import apply_rec_postprocessing
+
+    processed = apply_rec_postprocessing(post, RelevanceLabel.R1, experiencer, content_function)
+    if processed.experiencer_label is None or processed.content_function is None:
+        return experiencer, content_function
+    return processed.experiencer_label, processed.content_function
 
 
 def apply_relevance_safeguard(post: SourcePost, label: RelevanceLabel) -> RelevanceLabel:

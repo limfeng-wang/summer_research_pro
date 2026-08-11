@@ -69,6 +69,8 @@ class PipelineTrace:
 
     stages: list[str] = field(default_factory=list)
     validation: ValidationReport = field(default_factory=ValidationReport.pass_)
+    raw_labels: dict[str, str | None] = field(default_factory=dict)
+    postprocessing_rules: list[dict[str, str | None]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
