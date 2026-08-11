@@ -1287,10 +1287,10 @@ def has_strong_commercial_evidence(post: SourcePost) -> bool:
         cue.lower() in lower_text for cue in clinic_promo_stance
     )
     dense_named_service_hashtags = named_clinic and text.count("#") >= 5 and any(
-        cue in text for cue in ["#看牙", "#深圳看牙", "#上海看牙", "#洁牙", "#补牙", "#种牙", "#美团医疗"]
+        cue in text for cue in ["#深圳看牙", "#上海看牙", "#美团医疗"]
     )
     promo_hashtags = text.count("#") >= 3 and any(
-        cue in text for cue in ["#芬必得", "#牙痛止痛药", "#上海看牙", "#看牙", "#novashine", "#Novashine", "#美团医疗"]
+        cue in text for cue in ["#芬必得", "#牙痛止痛药", "#novashine", "#Novashine", "#美团医疗"]
     )
 
     return explicit_ad or product_ad or clinic_account_ad or clinic_conversion_ad or dense_named_service_hashtags or promo_hashtags
@@ -1316,6 +1316,9 @@ def has_named_clinic_or_service_tag(text: str) -> bool:
         "成都口腔",
         "口腔挂号攻略",
         "看牙医",
+        "看牙",
+        "补牙",
+        "牙科",
         "口腔医学生",
         "医生日常",
     }
@@ -1375,6 +1378,12 @@ def apply_weak_commercial_demote_safeguard(post: SourcePost, label: ContentFunct
 
     if any(cue in text for cue in first_person_cues) and any(cue in text for cue in care_logistics_cues):
         return ContentFunctionLabel.C1
+    if (
+        has_specific_author_case(text)
+        and has_toothache_relevance_evidence(post)
+        and not _looks_like_generic_health_education(text)
+    ):
+        return ContentFunctionLabel.C1
     if _has_short_lived_pain_narrative_signal(text) and not _looks_like_generic_health_education(text):
         return ContentFunctionLabel.C1
     if any(cue in text for cue in general_knowledge_cues):
@@ -1405,9 +1414,12 @@ def apply_help_seeking_safeguard(post: SourcePost, label: ContentFunctionLabel) 
         "추천",
     ]
     rhetorical_title_cues = ["办法", "方法", "科普", "一篇说清楚", "急救办法", "一张图看懂", "指南", "攻略"]
-    genuine_request = any(cue in text for cue in advice_cues) and question_mark and not any(
-        cue in post.original_title for cue in rhetorical_title_cues
-    )
+    rhetorical_explainer = any(cue in post.original_title for cue in rhetorical_title_cues)
+    if any(cue in text for cue in ["如何快速处理", "快速处理", "处理三招", "三招", "2招", "两招"]) and any(
+        cue in text for cue in ["止疼药", "布洛芬", "温盐水", "冰敷", "方法", "招"]
+    ):
+        rhetorical_explainer = True
+    genuine_request = any(cue in text for cue in advice_cues) and question_mark and not rhetorical_explainer
     if genuine_request:
         return ContentFunctionLabel.C2
     if label == ContentFunctionLabel.C2:
@@ -1727,6 +1739,9 @@ def has_specific_author_case(text: str) -> bool:
         "我上周",
         "我去",
         "我真的",
+        "我真是",
+        "我以为",
+        "我早就",
         "我坚持",
         "前段时间我",
         "根据我从小到大",

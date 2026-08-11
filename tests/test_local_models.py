@@ -796,6 +796,41 @@ def test_classification_safeguards_preserve_first_person_advertorial_as_e1_c4():
     )
 
 
+def test_classification_safeguards_demote_broad_dental_hashtag_c4_to_c1():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean=(
+            "大半夜智齿的蛀牙掉了一块!\n"
+            "我真是醉了牙牙龈痛了两天我以为上火了就没管,半夜感觉牙里面有东西,"
+            "一摸牙掉了一块,我早就准备去看牙来着,一直没带要去。"
+            "#牙齿 #看牙 #补牙 #牙科"
+        ),
+    )
+
+    assert not has_strong_commercial_evidence(post)
+    assert apply_classification_safeguards(post, ExperiencerLabel.E1, ContentFunctionLabel.C4) == (
+        ExperiencerLabel.E1,
+        ContentFunctionLabel.C1,
+    )
+
+
+def test_classification_safeguards_demote_rhetorical_quick_tips_c2_to_c3():
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        original_title="牙疼快速处理三招",
+        text_clean="牙疼快速处理三招\n牙疼如何快速处理?\n自然是止疼药啦,家里常备布洛芬\n温盐水漱口\n冰敷",
+    )
+
+    assert apply_classification_safeguards(post, ExperiencerLabel.E3, ContentFunctionLabel.C2) == (
+        ExperiencerLabel.E3,
+        ContentFunctionLabel.C3,
+    )
+
+
 def test_classification_safeguards_preserve_clinic_account_promotion_as_c4():
     post = SourcePost(
         post_id="p1",
