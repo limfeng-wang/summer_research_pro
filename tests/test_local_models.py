@@ -3,6 +3,7 @@ from dental_ai.local_models import (
     _extract_label_payload,
     _extract_json_object,
     _extract_judge_verdict_payload,
+    _normalize_csm_payload_enums,
     apply_deterministic_csm_safeguards,
     apply_judge_verdict_payload,
     apply_classification_safeguards,
@@ -332,6 +333,52 @@ def test_repair_evidence_spans_fixes_short_repeated_terminal_punctuation():
     repaired = repair_evidence_spans(result, post)
 
     assert repaired.units[0].evidence_span_original == "虫歯?!"
+
+
+def test_normalize_csm_payload_enums_repairs_model_enum_drift():
+    payload = {
+        "post_id": "p1",
+        "country": "CHI",
+        "language": "zh",
+        "units": [
+            {
+                "unit_id": "p1_u001",
+                "domain": "Symptom Description",
+                "evidence_span_original": "牙疼",
+                "surface_text_working": "牙疼",
+                "normalized_concept_en": "Dental pain",
+                "concept_status": "new_candidate",
+                "support_type": "explicit",
+                "assertion": "past",
+                "sentiment_or_outcome": "mixed",
+                "confidence": 0.9,
+                "judge_verdict": "needs_human_review",
+            },
+            {
+                "unit_id": "p1_u002",
+                "domain": "Coping and Management",
+                "evidence_span_original": "现在吃药",
+                "surface_text_working": "现在吃药",
+                "normalized_concept_en": "Medication use",
+                "concept_status": "new_candidate",
+                "support_type": "explicit",
+                "assertion": "current",
+                "sentiment_or_outcome": "relieved",
+                "confidence": 0.9,
+                "judge_verdict": "needs_human_review",
+            },
+        ],
+    }
+
+    normalized = _normalize_csm_payload_enums(payload)
+    result = ExtractionResult.model_validate(normalized)
+
+    assert result.units[0].assertion == AssertionStatus.PRESENT
+    assert result.units[0].temporality.value == "past"
+    assert result.units[0].sentiment_or_outcome.value == "unknown"
+    assert result.units[1].assertion == AssertionStatus.PRESENT
+    assert result.units[1].temporality.value == "current"
+    assert result.units[1].sentiment_or_outcome.value == "effective"
 
 
 def test_json_object_parser_strips_thinking_text():

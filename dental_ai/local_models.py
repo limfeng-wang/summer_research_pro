@@ -293,6 +293,7 @@ class LocalCSMExtractor:
             GenerationConfig(max_new_tokens=2048),
         )
         payload = _extract_csm_payload(text, post)
+        payload = _normalize_csm_payload_enums(payload)
         result = ExtractionResult.model_validate(payload)
         result = repair_evidence_spans(result, post)
         return mark_units_needing_human_review(result)
@@ -797,6 +798,61 @@ def _extract_csm_payload(text: str, post: SourcePost) -> dict[str, Any]:
                 "units": recovered_units,
             }
         raise
+
+
+def _normalize_csm_payload_enums(payload: dict[str, Any]) -> dict[str, Any]:
+    """Normalize common model enum drift before schema validation."""
+
+    normalized = dict(payload)
+    units = []
+    for unit in normalized.get("units", []) or []:
+        if not isinstance(unit, dict):
+            units.append(unit)
+            continue
+        item = dict(unit)
+        _normalize_csm_unit_enums(item)
+        units.append(item)
+    normalized["units"] = units
+    return normalized
+
+
+def _normalize_csm_unit_enums(unit: dict[str, Any]) -> None:
+    assertion = _clean_enum_text(unit.get("assertion"))
+    temporality = _clean_enum_text(unit.get("temporality"))
+    sentiment = _clean_enum_text(unit.get("sentiment_or_outcome"))
+
+    if assertion in {"past", "current", "future", "unknown"}:
+        if not temporality or temporality == "unknown":
+            unit["temporality"] = assertion
+        unit["assertion"] = "planned" if assertion == "future" else "present"
+    elif assertion in {"presented", "affirmed", "affirmative", "yes", "true"}:
+        unit["assertion"] = "present"
+    elif assertion in {"denied", "denial", "absent", "false"}:
+        unit["assertion"] = "negated"
+    elif assertion in {"possible", "suspected", "maybe", "unclear"}:
+        unit["assertion"] = "uncertain"
+    elif assertion in {"plan", "future"}:
+        unit["assertion"] = "planned"
+
+    if temporality in {"present", "ongoing", "now"}:
+        unit["temporality"] = "current"
+    elif temporality in {"previous", "prior", "before"}:
+        unit["temporality"] = "past"
+    elif temporality in {"planned"}:
+        unit["temporality"] = "future"
+
+    if sentiment in {"mixed", "ambivalent", "both", "unclear", "not_applicable", "n/a", "na"}:
+        unit["sentiment_or_outcome"] = "unknown"
+    elif sentiment in {"improved", "relieved", "relief", "helpful", "worked"}:
+        unit["sentiment_or_outcome"] = "effective"
+    elif sentiment in {"not_effective", "failed", "no_effect", "worse", "worsened"}:
+        unit["sentiment_or_outcome"] = "ineffective"
+
+
+def _clean_enum_text(value: object) -> str:
+    if not isinstance(value, str):
+        return ""
+    return value.strip().lower().replace(" ", "_").replace("-", "_")
 
 
 def _recover_csm_units(text: str) -> list[dict[str, Any]]:
