@@ -249,7 +249,7 @@ class LocalRelevanceClassifier:
     def classify_relevance(self, post: SourcePost) -> RelevanceLabel:
         text = self.lm.generate_json_text(
             RELEVANCE_PROMPT,
-            _post_payload(post),
+            _post_payload(post, compact=True, max_text_chars=1800),
             GenerationConfig(max_new_tokens=64),
         )
         payload = _extract_label_payload(text, ["relevance_label"])
@@ -280,14 +280,14 @@ class LocalR1Classifier:
         text = self.lm.generate_json_text(
             R1_CLASSIFICATION_PROMPT,
             {
-                "post": _post_payload(post),
+                "post": _post_payload(post, compact=True, max_text_chars=1800),
                 "classification_gold_examples": _classification_fewshot_payload(
                     post,
                     self.classification_examples,
                     k=self.fewshot_k,
                 ),
             },
-            GenerationConfig(max_new_tokens=192),
+            GenerationConfig(max_new_tokens=128),
         )
         payload = _extract_label_payload(text, ["experiencer_label", "content_function"])
         raw_experiencer = ExperiencerLabel(payload["experiencer_label"])
@@ -324,14 +324,14 @@ class LocalCombinedClassifier:
         text = self.lm.generate_json_text(
             COMBINED_CLASSIFICATION_PROMPT,
             {
-                "post": _post_payload(post),
+                "post": _post_payload(post, compact=True, max_text_chars=1800),
                 "classification_gold_examples": _classification_fewshot_payload(
                     post,
                     self.classification_examples,
                     k=self.fewshot_k,
                 ),
             },
-            GenerationConfig(max_new_tokens=192),
+            GenerationConfig(max_new_tokens=128),
         )
         payload = _extract_label_payload(text, ["relevance_label"])
         from dental_ai.classification_postprocess import apply_rec_postprocessing, apply_relevance_postprocessing
@@ -1002,8 +1002,25 @@ def local_lm_for_role(
     )
 
 
-def _post_payload(post: SourcePost) -> dict[str, Any]:
-    return {
+def _post_payload(
+    post: SourcePost,
+    *,
+    compact: bool = False,
+    max_text_chars: int | None = None,
+) -> dict[str, Any]:
+    if compact:
+        source_text = post.combined_source_text
+        if max_text_chars is not None and max_text_chars > 0:
+            source_text = source_text[:max_text_chars]
+        return {
+            "post_id": post.post_id,
+            "country": post.country.value,
+            "language": post.language.value,
+            "platform": post.platform,
+            "source_text": source_text,
+        }
+
+    payload = {
         "post_id": post.post_id,
         "country": post.country.value,
         "language": post.language.value,
@@ -1013,6 +1030,11 @@ def _post_payload(post: SourcePost) -> dict[str, Any]:
         "text_clean": post.text_clean,
         "analysis_text_en": post.analysis_text_en,
     }
+    if max_text_chars is not None and max_text_chars > 0:
+        for key in ["original_text", "text_clean", "analysis_text_en"]:
+            if payload[key]:
+                payload[key] = payload[key][:max_text_chars]
+    return payload
 
 
 def _classification_fewshot_payload(
@@ -1066,11 +1088,11 @@ def _classification_example_payload(example: ClassificationGoldRecord) -> dict[s
     return {
         "country": example.country.value,
         "language": example.language.value,
-        "source_excerpt": text[:900],
+        "source_excerpt": text[:500],
         "experiencer_label": example.experiencer_label.value,
         "content_function": example.content_function.value,
-        "evidence_excerpt": example.evidence_excerpt[:500],
-        "rationale": example.rationale[:300],
+        "evidence_excerpt": example.evidence_excerpt[:220],
+        "rationale": example.rationale[:180],
     }
 
 

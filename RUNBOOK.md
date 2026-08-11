@@ -225,6 +225,45 @@ CUDA_VISIBLE_DEVICES=0,1 PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
   --shard-index 0
 ```
 
+### Parallel sharded HF run
+
+For two L20s, run independent shards as separate one-GPU workers. This does not
+change the annotation method; it only parallelizes the corpus split and keeps
+one full HF pipeline per shard.
+
+```bash
+GPU_LIST=2,3 \
+SHARD_COUNT=8 \
+OUT_BASE=outputs/main_full_qwen35_gemma4_sharded \
+MODELS_ROOT=/hdd-storage/lawrencelcty/huggingface/models \
+bash scripts/run_hf_shards.sh
+```
+
+For a smaller timed pilot:
+
+```bash
+GPU_LIST=2,3 \
+SHARD_COUNT=2 \
+LIMIT=1000 \
+OUT_BASE=outputs/main_pilot_1000_sharded \
+bash scripts/run_hf_shards.sh
+```
+
+Merge finished shards:
+
+```bash
+python scripts/merge_hf_shards.py \
+  --out-dir outputs/main_full_qwen35_gemma4_merged \
+  outputs/main_full_qwen35_gemma4_sharded/shard_*
+```
+
+Monitor active shards:
+
+```bash
+ps -eo pid,etime,pcpu,pmem,cmd | grep "dental_ai.cli run-hierarchical" | grep -v grep
+find outputs/main_full_qwen35_gemma4_sharded -maxdepth 2 -type f -printf '%TY-%Tm-%Td %TH:%TM:%TS %s %p\n' | sort
+```
+
 ## Current Status
 
 The Hugging Face backend supports staged classification and full local

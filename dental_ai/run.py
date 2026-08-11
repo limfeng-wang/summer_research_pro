@@ -338,83 +338,98 @@ def _run_hf(
         extract_proxy_csm=bool(stack.runtime.get("extract_proxy_csm", True)),
         rag_k=rag_k,
     )
-    retriever = GoldRAGRetriever.from_config(stack, models_root=models_root)
-
-    extractor_lm = local_lm_for_role(stack, "extractor", models_root=models_root)
-    extractor = LocalCSMExtractor(extractor_lm)
-    try:
-        for index, post in enumerate(_progress(posts, desc="hf-extract"), start=1):
-            if post.post_id in final_post_ids:
-                continue
-            output = output_by_post_id.get(post.post_id)
-            if output is None:
-                continue
-            output = _apply_pre_extraction_classification_safeguards(
-                post,
-                output,
-                apply_rec_postprocessing=apply_rec_postprocessing,
-                validate_hierarchical_result=validate_hierarchical_result,
-            )
-            output_by_post_id[post.post_id] = output
-            result = output.result
-            if not _should_extract_csm_result(result, config):
+    extraction_posts: list[SourcePost] = []
+    for post in _progress(posts, desc="hf-plan-extract"):
+        if post.post_id in final_post_ids:
+            continue
+        output = output_by_post_id.get(post.post_id)
+        if output is None:
+            continue
+        output = _apply_pre_extraction_classification_safeguards(
+            post,
+            output,
+            apply_rec_postprocessing=apply_rec_postprocessing,
+            validate_hierarchical_result=validate_hierarchical_result,
+        )
+        output_by_post_id[post.post_id] = output
+        if post.post_id in extracted_by_post_id:
+            output_by_post_id[post.post_id] = extracted_by_post_id[post.post_id]
+            if not extracted_by_post_id[post.post_id].result.units:
                 _write_final_output(
                     annotations_file,
-                    output,
+                    extracted_by_post_id[post.post_id],
                     final_outputs_by_post_id,
                     final_post_ids,
                 )
-                continue
-            if post.post_id in extracted_by_post_id:
-                output_by_post_id[post.post_id] = extracted_by_post_id[post.post_id]
-                continue
-            current_stage = "rag_retrieval"
-            try:
-                retrieved = retriever.retrieve_with_scores(post, k=config.rag_k)
-                for trace_row in retrieval_trace_rows(post, retrieved):
-                    _write_jsonl_line(retrieval_trace_file, trace_row)
-                current_stage = "csm_extraction"
-                extracted = extractor.extract_csm(post, [item.result for item in retrieved])
-                extracted = ExtractionResult.empty_for_post(post).model_copy(
-                    update={
-                        "units": extracted.units,
-                        "relevance_label": result.relevance_label,
-                        "experiencer_label": result.experiencer_label,
-                        "content_function": result.content_function,
-                    }
-                ).with_assigned_unit_ids()
-                validation = validate_hierarchical_result(extracted, post)
-                stages = output.trace.stages + ["rag_retrieval", "csm_extraction"]
-                output_by_post_id[post.post_id] = PipelineOutput(
-                    result=extracted,
-                    trace=_trace_with(output.trace, stages=stages, validation=validation),
-                )
-                extracted_by_post_id[post.post_id] = output_by_post_id[post.post_id]
-                _write_output_line(extracted_checkpoint_file, output_by_post_id[post.post_id])
-            except Exception as exc:
-                error = _error_record(post, index=index, stage=current_stage, exc=exc)
-                errors.append(error)
-                _write_jsonl_line(errors_file, error)
-    finally:
-        extractor_lm.close()
+            continue
+        if _should_extract_csm_result(output.result, config):
+            extraction_posts.append(post)
+            continue
+        _write_final_output(
+            annotations_file,
+            output,
+            final_outputs_by_post_id,
+            final_post_ids,
+        )
+
+    if extraction_posts:
+        retriever = GoldRAGRetriever.from_config(stack, models_root=models_root)
+        extractor_lm = local_lm_for_role(stack, "extractor", models_root=models_root)
+        extractor = LocalCSMExtractor(extractor_lm)
+        try:
+            for index, post in enumerate(_progress(extraction_posts, desc="hf-extract"), start=1):
+                output = output_by_post_id.get(post.post_id)
+                if output is None:
+                    continue
+                result = output.result
+                current_stage = "rag_retrieval"
+                try:
+                    retrieved = retriever.retrieve_with_scores(post, k=config.rag_k)
+                    for trace_row in retrieval_trace_rows(post, retrieved):
+                        _write_jsonl_line(retrieval_trace_file, trace_row)
+                    current_stage = "csm_extraction"
+                    extracted = extractor.extract_csm(post, [item.result for item in retrieved])
+                    extracted = ExtractionResult.empty_for_post(post).model_copy(
+                        update={
+                            "units": extracted.units,
+                            "relevance_label": result.relevance_label,
+                            "experiencer_label": result.experiencer_label,
+                            "content_function": result.content_function,
+                        }
+                    ).with_assigned_unit_ids()
+                    validation = validate_hierarchical_result(extracted, post)
+                    stages = output.trace.stages + ["rag_retrieval", "csm_extraction"]
+                    output_by_post_id[post.post_id] = PipelineOutput(
+                        result=extracted,
+                        trace=_trace_with(output.trace, stages=stages, validation=validation),
+                    )
+                    extracted_by_post_id[post.post_id] = output_by_post_id[post.post_id]
+                    _write_output_line(extracted_checkpoint_file, output_by_post_id[post.post_id])
+                except Exception as exc:
+                    error = _error_record(post, index=index, stage=current_stage, exc=exc)
+                    errors.append(error)
+                    _write_jsonl_line(errors_file, error)
+        finally:
+            extractor_lm.close()
+
+    judge_posts = [
+        post
+        for post in posts
+        if post.post_id not in final_post_ids
+        and post.post_id in output_by_post_id
+        and output_by_post_id[post.post_id].result.units
+    ]
+    if not judge_posts:
+        return [final_outputs_by_post_id[post.post_id] for post in posts if post.post_id in final_outputs_by_post_id], errors
 
     judge_lm = local_lm_for_role(stack, "judge", models_root=models_root)
     judge = LocalJudge(judge_lm)
     try:
-        for index, post in enumerate(_progress(posts, desc="hf-judge"), start=1):
-            if post.post_id in final_post_ids:
-                continue
+        for index, post in enumerate(_progress(judge_posts, desc="hf-judge"), start=1):
             output = output_by_post_id.get(post.post_id)
             if output is None:
                 continue
-            if not output.result.units:
-                _write_final_output(
-                    annotations_file,
-                    output,
-                    final_outputs_by_post_id,
-                    final_post_ids,
-                )
-                continue
+            current_stage = "rag_retrieval"
             try:
                 judged = judge.judge(post, output.result)
                 validation = validate_hierarchical_result(judged, post)
