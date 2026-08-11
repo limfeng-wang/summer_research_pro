@@ -161,6 +161,15 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--models-root", default="/hdd-storage/lawrencelcty/huggingface/models")
     run.add_argument("--hf-stage", choices=("classify", "full"), default="classify")
     run.add_argument("--limit", type=int, default=0, help="Optional max rows for smoke tests")
+    run.add_argument("--resume", action="store_true", help="Resume from existing checkpoint/output files")
+    run.add_argument("--shard-count", type=int, default=1, help="Number of contiguous input shards")
+    run.add_argument("--shard-index", type=int, default=0, help="Zero-based contiguous shard index")
+    run.add_argument(
+        "--classification-mode",
+        choices=("combined", "separate"),
+        default="combined",
+        help="Use one combined classifier call per row, or the legacy two-call classifier.",
+    )
     run.set_defaults(func=_cmd_run_hierarchical)
 
     return parser
@@ -320,6 +329,11 @@ def _cmd_run_hierarchical(args: argparse.Namespace) -> int:
     ]
     if args.limit:
         argv.extend(["--limit", str(args.limit)])
+    if args.resume:
+        argv.append("--resume")
+    argv.extend(["--shard-count", str(args.shard_count)])
+    argv.extend(["--shard-index", str(args.shard_index)])
+    argv.extend(["--classification-mode", args.classification_mode])
     return run_main(argv)
 
 

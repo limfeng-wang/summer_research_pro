@@ -2,7 +2,15 @@ import json
 
 from dental_ai.pipeline import PipelineOutput, PipelineTrace
 from dental_ai.local_models import apply_classification_safeguards
-from dental_ai.run import _apply_pre_extraction_classification_safeguards, _hf_manifest_config, _should_extract_csm_result
+from dental_ai.run import (
+    _apply_pre_extraction_classification_safeguards,
+    _hf_manifest_config,
+    _load_output_map,
+    _select_shard,
+    _should_extract_csm_result,
+    _write_output_line,
+    main as run_main,
+)
 from dental_ai.schemas import ContentFunctionLabel, Country, ExperiencerLabel, ExtractionResult, Language, RelevanceLabel, SourcePost
 from dental_ai.validate import validate_hierarchical_result
 
@@ -97,6 +105,70 @@ def test_hf_manifest_lists_reranker_as_active_when_enabled(tmp_path):
     assert manifest["models"]["reranker"]["quantization"] == "fp16"
     assert manifest["models"]["reranker"]["device_policy"] == "cuda:0"
     assert manifest["disabled_optional_models"] == {}
+
+
+def test_select_shard_uses_contiguous_zero_based_partitions():
+    posts = [
+        SourcePost(post_id=f"p{i}", country=Country.CHI, language=Language.ZH, text_clean="牙疼")
+        for i in range(10)
+    ]
+
+    assert [post.post_id for post in _select_shard(posts, shard_count=3, shard_index=0)] == ["p0", "p1", "p2"]
+    assert [post.post_id for post in _select_shard(posts, shard_count=3, shard_index=1)] == ["p3", "p4", "p5"]
+    assert [post.post_id for post in _select_shard(posts, shard_count=3, shard_index=2)] == ["p6", "p7", "p8", "p9"]
+
+
+def test_output_checkpoint_roundtrip_preserves_trace(tmp_path):
+    post = SourcePost(post_id="p1", country=Country.CHI, language=Language.ZH, text_clean="牙疼")
+    result = ExtractionResult.empty_for_post(post).model_copy(update={"relevance_label": RelevanceLabel.R1})
+    output = PipelineOutput(
+        result=result,
+        trace=PipelineTrace(stages=["combined_classification"], validation=validate_hierarchical_result(result, post)),
+    )
+    checkpoint = tmp_path / "classified.jsonl"
+
+    with checkpoint.open("a", encoding="utf-8") as file:
+        _write_output_line(file, output)
+    loaded = _load_output_map(checkpoint)
+
+    assert loaded["p1"].result.relevance_label == RelevanceLabel.R1
+    assert loaded["p1"].trace.stages == ["combined_classification"]
+    assert not loaded["p1"].trace.validation.ok
+    assert loaded["p1"].trace.validation.issues[0].code == "missing_experiencer"
+
+
+def test_mock_run_supports_sharding_and_manifest_fields(tmp_path):
+    input_path = tmp_path / "input.jsonl"
+    out_dir = tmp_path / "out"
+    rows = [
+        SourcePost(post_id=f"p{i}", country=Country.CHI, language=Language.ZH, text_clean="牙疼").model_dump(mode="json")
+        for i in range(4)
+    ]
+    input_path.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n", encoding="utf-8")
+
+    assert run_main(
+        [
+            "--input",
+            str(input_path),
+            "--out-dir",
+            str(out_dir),
+            "--backend",
+            "mock",
+            "--shard-count",
+            "2",
+            "--shard-index",
+            "1",
+        ]
+    ) == 0
+
+    annotations = [json.loads(line) for line in (out_dir / "annotations.jsonl").read_text(encoding="utf-8").splitlines()]
+    manifest = json.loads((out_dir / "run_manifest.json").read_text(encoding="utf-8"))
+
+    assert [row["post_id"] for row in annotations] == ["p2", "p3"]
+    assert manifest["input_rows_after_limit"] == 4
+    assert manifest["rows_attempted"] == 2
+    assert manifest["shard_count"] == 2
+    assert manifest["shard_index"] == 1
 
 
 def test_pre_extraction_safeguard_blocks_generic_wisdom_tooth_logistics():

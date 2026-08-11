@@ -1,4 +1,7 @@
+import json
+
 from dental_ai.local_models import (
+    LocalCombinedClassifier,
     _extract_csm_payload,
     _extract_label_payload,
     _extract_json_object,
@@ -47,6 +50,31 @@ def test_extract_label_payload_recovers_labels_from_truncated_json():
         "experiencer_label": "E3",
         "content_function": "C3",
     }
+
+
+def test_combined_classifier_returns_relevance_and_r1_labels_with_safeguards():
+    class StubLM:
+        def generate_json_text(self, system_prompt, user_payload, config):
+            return json.dumps(
+                {
+                    "relevance_label": "R1",
+                    "experiencer_label": "E1",
+                    "content_function": "C5",
+                }
+            )
+
+    post = SourcePost(
+        post_id="p1",
+        country=Country.CHI,
+        language=Language.ZH,
+        text_clean="昨晚牙疼的一晚上没合眼 但是不想吃药",
+    )
+
+    relevance, experiencer, content_function = LocalCombinedClassifier(StubLM()).classify(post)
+
+    assert relevance == RelevanceLabel.R1
+    assert experiencer == ExperiencerLabel.E1
+    assert content_function == ContentFunctionLabel.C1
 
 
 def test_extractor_units_are_reset_to_needs_human_review_before_judge():

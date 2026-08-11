@@ -17,6 +17,84 @@ Return strict JSON:
 """
 
 
+COMBINED_CLASSIFICATION_PROMPT = """\
+You are applying the frozen codebook for a multilingual toothache narrative study.
+Use original source text as authoritative.
+
+The user payload contains:
+- post: the target post to classify.
+- classification_gold_examples: human-adjudicated R/E/C examples from the development/few-shot gold set. Use them only to calibrate boundary decisions. Do not copy their labels unless the target post has the same function/evidence pattern.
+
+Return relevance_label for every post. Return experiencer_label and content_function only when relevance_label is R1.
+Do not extract CSM units in this task.
+
+RELEVANCE LABEL
+- R1: explicitly concerns toothache, tooth/gingival pain, pain-related treatment, or response to a specific toothache experience.
+- R0: unrelated keyword noise, unrelated reposting, hashtag stuffing, oral-ulcer-only, cosmetic dentistry, generic oral hygiene/prevention without tooth/gingival pain, or ambiguous non-toothache use.
+- RU: relevance cannot be determined reliably from the source text.
+
+Dental procedures can be R1 when pain-related care is central: root canal, extraction, wisdom-tooth inflammation, pulpitis, dry socket, painful caries, pain relief, anesthesia, or painful recovery.
+
+EXPERIENCER LABEL FOR R1
+- E1 Author: the author describes their own current/past toothache, symptoms, dental visit, treatment, recovery, or intended care. Omitted subject can still be E1 when context clearly points to the author.
+- E2 Specific other person: a family member, friend, patient, spouse, child, or directly addressed person has the toothache/dental-pain experience.
+- E3 No specific experiencer: general knowledge, product/service information, institutional content, jokes/general statements, or broad "patients/everyone/people" statements.
+
+E-label safeguards:
+- An @mention alone is not E2.
+- Generic "patients", "everyone", "you", "people" is E3 unless a specific person is described.
+- An advertorial written in first person can still be E1 if it claims the author's own pain/use; commercial status changes only C label, not E label.
+
+CONTENT FUNCTION LABEL FOR R1
+- C1 Experience-sharing narrative: what happened to a specific experiencer is the main content, with a lived symptom/burden sequence such as pain, swelling, inflammation, sleep/eating/work disruption, emotional distress, care-seeking because of symptoms, treatment experience, recovery, or outcome.
+- C2 Question/help-seeking: the author genuinely asks readers for explanation, judgement, recommendation, or actionable advice affecting a decision.
+- C3 Health knowledge sharing: reusable information about causes, symptoms, prevention, management, treatment, or care. It stands independently of one person's story.
+- C4 Advertising/commercial: primary purpose is promotion or conversion for an identifiable commercial target: product, brand, drug, device, clinic, doctor/team, appointment, consultation, paid service, purchase channel, discount, package, or account traffic. Includes advertorials disguised as personal experience.
+- C5 Other: toothache-related but low-information reaction, joke, wish, slogan, or brief interaction.
+
+PRIMARY FUNCTION PRIORITY
+C4 > C2 > C3 > C1 > C5.
+Apply this priority only to content_function; do not change experiencer_label.
+
+C4 requires BOTH:
+1. a commercial target: named product/brand/drug/device/clinic/service/doctor account, purchase or booking channel, paid package, discount, consultation, or identifiable institutional account; AND
+2. a promotional stance: recommendation, trust/quality claim, product features, dosage/taste/packaging, price/package selling point, appointment/booking/conversion language, account tagging, or service/location marketing.
+
+C4 MUST NOT be used for ordinary care logistics by itself:
+- cost-sharing, hospital registration, appointment process, X-ray fee, surgery fee, insurance reimbursement, or "which department/doctor" details are NOT C4 unless a specific clinic/product/service is being promoted.
+- Broad health hashtags alone are NOT C4: #口腔健康, #口腔护理, #牙齿护理, #刷牙, #牙齿保护计划.
+
+C2 must be genuine help-seeking:
+- "怎么办/どうしたら/어떡해/should I..." plus a real request for advice -> C2.
+- Rhetorical question in a title followed by education/ad/promotional content is C3 or C4, not C2.
+
+C3 vs C1:
+- If the post mainly tells the author's/specific person's own sequence of symptoms/actions/outcomes -> C1.
+- If the post mainly teaches generally reusable information, even with "you/大家" language -> C3.
+- Procedure-heavy posts are C3 when the main content is reusable logistics, fees, registration, doctor selection, operation steps, or aftercare instructions and the author's own pain/burden is absent or only incidental.
+
+COMPACT EXAMPLES
+- Oral-ulcer-only post -> R0 with null experiencer_label/content_function.
+- "喝了一包芬必得小绿盒, 不愧是大品牌, #芬必得 #牙痛止痛药" -> R1 + E1 + C4.
+- "牙痛急救办法: 冰敷、盐水漱口、及时就医" -> R1 + E3 + C3.
+- "我牙疼三天睡不着, 明天去拔牙" -> R1 + E1 + C1.
+- "我拔智齿两次, 第一次手术费975, 第二次1300, 分享挂号和术后注意事项" -> R1 + E1 + C3, not C1/C4.
+- "牙疼怎么办? 现在要不要去急诊?" -> R1 + E1 + C2.
+- "我妈牙疼到吃不了饭" -> R1 + E2 + C1.
+- "牙痛痛痛!!!" -> R1 + E1 + C5 if it is only a brief reaction with no meaningful narrative or help request.
+
+Return strict JSON only:
+{
+  "relevance_label": "R1|R0|RU",
+  "experiencer_label": "E1|E2|E3|null",
+  "content_function": "C1|C2|C3|C4|C5|null",
+  "relevance_evidence": "short exact source phrase supporting relevance, or empty for R0/RU",
+  "experiencer_evidence": "short exact source phrase supporting E label, or empty for E3/R0/RU",
+  "content_function_evidence": "short exact source phrase supporting C label, or empty for R0/RU"
+}
+"""
+
+
 R1_CLASSIFICATION_PROMPT = """\
 You are applying the frozen codebook for a multilingual toothache narrative study.
 The post is already R1 toothache-relevant. Use original source text as authoritative.

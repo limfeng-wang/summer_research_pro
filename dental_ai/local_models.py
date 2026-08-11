@@ -12,7 +12,13 @@ from typing import Any
 
 from dental_ai.classification_gold import ClassificationGoldRecord, canonical_post_id
 from dental_ai.model_config import DEFAULT_MODELS_ROOT, ModelStackConfig
-from dental_ai.prompts import CSM_EXTRACTION_PROMPT, JUDGE_PROMPT, R1_CLASSIFICATION_PROMPT, RELEVANCE_PROMPT
+from dental_ai.prompts import (
+    COMBINED_CLASSIFICATION_PROMPT,
+    CSM_EXTRACTION_PROMPT,
+    JUDGE_PROMPT,
+    R1_CLASSIFICATION_PROMPT,
+    RELEVANCE_PROMPT,
+)
 from dental_ai.schemas import (
     CSMDomain,
     ContentFunctionLabel,
@@ -277,6 +283,44 @@ class LocalR1Classifier:
         experiencer = ExperiencerLabel(payload["experiencer_label"])
         content_function = ContentFunctionLabel(payload["content_function"])
         return apply_classification_safeguards(post, experiencer, content_function)
+
+
+class LocalCombinedClassifier:
+    def __init__(
+        self,
+        lm: LocalCausalLM,
+        *,
+        classification_examples: list[ClassificationGoldRecord] | None = None,
+        fewshot_k: int = 8,
+    ):
+        self.lm = lm
+        self.classification_examples = classification_examples or []
+        self.fewshot_k = fewshot_k
+
+    def classify(self, post: SourcePost) -> tuple[RelevanceLabel, ExperiencerLabel | None, ContentFunctionLabel | None]:
+        text = self.lm.generate_json_text(
+            COMBINED_CLASSIFICATION_PROMPT,
+            {
+                "post": _post_payload(post),
+                "classification_gold_examples": _classification_fewshot_payload(
+                    post,
+                    self.classification_examples,
+                    k=self.fewshot_k,
+                ),
+            },
+            GenerationConfig(max_new_tokens=256),
+        )
+        payload = _extract_label_payload(text, ["relevance_label"])
+        relevance = apply_relevance_safeguard(post, RelevanceLabel(payload["relevance_label"]))
+        if relevance != RelevanceLabel.R1:
+            return relevance, None, None
+        try:
+            experiencer = ExperiencerLabel(payload["experiencer_label"])
+            content_function = ContentFunctionLabel(payload["content_function"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(f"Combined classifier returned R1 without valid E/C labels: {text[:500]!r}") from exc
+        experiencer, content_function = apply_classification_safeguards(post, experiencer, content_function)
+        return relevance, experiencer, content_function
 
 
 class LocalCSMExtractor:
@@ -1744,6 +1788,7 @@ def has_specific_other_case(text: str) -> bool:
 
 __all__ = [
     "GenerationConfig",
+    "LocalCombinedClassifier",
     "LocalCSMExtractor",
     "LocalCausalLM",
     "LocalJudge",

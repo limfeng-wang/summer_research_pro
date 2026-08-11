@@ -167,6 +167,7 @@ CUDA_VISIBLE_DEVICES=0,1 PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
   --backend hf \
   --hf-stage full \
   --models-root /hdd-storage/lawrencelcty/huggingface/models \
+  --classification-mode combined \
   --limit 3
 ```
 
@@ -176,16 +177,52 @@ Full-stage outputs:
 - `retrieval_trace.jsonl`: retrieved CSM gold examples per extracted post
 - `errors.jsonl`: row-level failures without aborting the full batch
 - `run_manifest.json`: attempted/succeeded/failed row counts
+- `checkpoints/classified.jsonl`: per-row classification checkpoints
+- `checkpoints/extracted.jsonl`: CSM extraction checkpoints before judging
 
-Run the leak-checked main automation corpus:
+Use `--resume` to continue an interrupted run in the same `--out-dir`.
+`annotations.jsonl` is written incrementally as rows become final. In full HF
+mode, `--classification-mode combined` is the default and uses one classifier
+LLM call per row instead of separate relevance and R1-classification calls.
+
+Run a 1,000-row main pilot:
 
 ```bash
 CUDA_VISIBLE_DEVICES=0,1 PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
   --input data/raw_main_llm_input_no_gold.jsonl \
-  --out-dir outputs/main_full_run \
+  --out-dir outputs/main_pilot_1000_v3 \
   --backend hf \
   --hf-stage full \
-  --models-root /hdd-storage/lawrencelcty/huggingface/models
+  --models-root /hdd-storage/lawrencelcty/huggingface/models \
+  --limit 1000
+```
+
+Resume the same pilot after interruption:
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1 PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
+  --input data/raw_main_llm_input_no_gold.jsonl \
+  --out-dir outputs/main_pilot_1000_v3 \
+  --backend hf \
+  --hf-stage full \
+  --models-root /hdd-storage/lawrencelcty/huggingface/models \
+  --limit 1000 \
+  --resume
+```
+
+Run one shard of the leak-checked main automation corpus. Shards are contiguous
+and zero-indexed, so `--shard-count 40 --shard-index 0` is the first shard and
+`--shard-index 39` is the last shard.
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1 PYTHONPATH=. python -m dental_ai.cli run-hierarchical \
+  --input data/raw_main_llm_input_no_gold.jsonl \
+  --out-dir outputs/main_full_shard_00 \
+  --backend hf \
+  --hf-stage full \
+  --models-root /hdd-storage/lawrencelcty/huggingface/models \
+  --shard-count 40 \
+  --shard-index 0
 ```
 
 ## Current Status
