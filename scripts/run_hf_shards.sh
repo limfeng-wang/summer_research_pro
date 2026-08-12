@@ -11,6 +11,8 @@ SHARD_COUNT="${SHARD_COUNT:-2}"
 GPU_LIST="${GPU_LIST:-0,1}"
 RESUME="${RESUME:-1}"
 LIMIT="${LIMIT:-0}"
+FILTER_BNB_WARNINGS="${FILTER_BNB_WARNINGS:-1}"
+MAX_LOG_BYTES="${MAX_LOG_BYTES:-100000000}"
 
 IFS=',' read -r -a GPUS <<< "$GPU_LIST"
 if [[ "${#GPUS[@]}" -lt 1 ]]; then
@@ -29,6 +31,31 @@ wait_for_batch() {
     fi
   done
   return "$status"
+}
+
+run_shard() {
+  local shard_dir="$1"
+  shift
+  local log_file="$shard_dir/run.log"
+  local exit_file="$shard_dir/exit_code.txt"
+  set +e
+  if [[ "$FILTER_BNB_WARNINGS" == "1" ]]; then
+    "$@" 2>&1 | grep -v "MatMul8bitLt: inputs will be cast" > "$log_file"
+  else
+    "$@" > "$log_file" 2>&1
+  fi
+  local code="${PIPESTATUS[0]}"
+  echo "$code" > "$exit_file"
+  if [[ -f "$log_file" ]]; then
+    local size
+    size="$(wc -c < "$log_file")"
+    if [[ "$size" -gt "$MAX_LOG_BYTES" ]]; then
+      tail -c "$MAX_LOG_BYTES" "$log_file" > "$log_file.tmp"
+      mv "$log_file.tmp" "$log_file"
+      echo "[run_hf_shards] log truncated to last $MAX_LOG_BYTES bytes" >> "$log_file"
+    fi
+  fi
+  return "$code"
 }
 
 pids=()
@@ -61,8 +88,8 @@ for (( shard=0; shard<SHARD_COUNT; shard++ )); do
   (
     export PYTHONPATH=.
     export CUDA_VISIBLE_DEVICES="$gpu"
-    "${cmd[@]}"
-  ) > "$shard_dir/run.log" 2>&1 &
+    run_shard "$shard_dir" "${cmd[@]}"
+  ) &
   pids+=("$!")
 
   if [[ "${#pids[@]}" -ge "${#GPUS[@]}" ]]; then
