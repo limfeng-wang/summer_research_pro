@@ -968,3 +968,43 @@ def test_classification_safeguards_do_not_promote_rhetorical_education_title_to_
         ExperiencerLabel.E3,
         ContentFunctionLabel.C3,
     )
+
+
+def test_relevance_safeguard_keeps_japanese_tooth_pain_variants():
+    examples = [
+        "親知らずが痛すぎて、早く抜きたいです。",
+        "最近夜になると左半分の歯が全部痛い",
+        "なんか前に治療した歯が痛いからロキソニン飲んで冷やして寝る...",
+        "昨日の矯正で下前歯が終わってます...ゴム掛けしている歯も痛むし、痛い所だらけです。",
+        "前回の虫歯治療・・・10数分後・・・えっ痛っ!!!!!",
+        "歯の痛みがなくなって、ゆっくり休んでいます。",
+    ]
+
+    for index, text in enumerate(examples):
+        post = SourcePost(
+            post_id=f"jp{index}",
+            country=Country.JPN,
+            language=Language.JA,
+            text_clean=text,
+        )
+
+        assert apply_relevance_safeguard(post, RelevanceLabel.R1) == RelevanceLabel.R1
+
+
+def test_relevance_safeguard_still_demotes_non_pain_japanese_dental_noise():
+    examples = [
+        "3ヶ月先まで予約取れない歯医者とか。虫歯今から初期だけど、3ヶ月後は神経ぬいたりやん。",
+        "久々の歯科定期検診で生まれてこの方25年間虫歯ゼロ記録更新。",
+        "虫歯菌みたいなぬいかわいい。",
+        "歯科衛生指導ソングの紹介です。",
+    ]
+
+    for index, text in enumerate(examples):
+        post = SourcePost(
+            post_id=f"jp_noise{index}",
+            country=Country.JPN,
+            language=Language.JA,
+            text_clean=text,
+        )
+
+        assert apply_relevance_safeguard(post, RelevanceLabel.R1) == RelevanceLabel.R0

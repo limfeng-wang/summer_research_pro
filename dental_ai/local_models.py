@@ -1184,11 +1184,15 @@ def has_toothache_relevance_evidence(post: SourcePost) -> bool:
     """Return whether the text concerns tooth/dental pain or pain-related care."""
 
     text = post.combined_source_text
+    normalized = re.sub(r"\s+", "", text)
     pain_cues = [
         "牙疼",
         "牙痛",
         "牙龈肿痛",
+        "牙龈红肿、疼痛",
+        "牙龈红肿疼痛",
         "智齿痛",
+        "智齿疼",
         "咬物痛",
         "咬合痛",
         "冷热刺激痛",
@@ -1196,8 +1200,15 @@ def has_toothache_relevance_evidence(post: SourcePost) -> bool:
         "夜间痛",
         "歯が痛",
         "歯痛",
+        "歯の痛み",
+        "歯も痛",
+        "歯痛すぎ",
+        "奥歯痛",
+        "前歯痛",
+        "親知らずが痛",
         "치통",
         "이가 아",
+        "이가아",
     ]
     pain_related_care_cues = [
         "牙髓炎",
@@ -1219,7 +1230,45 @@ def has_toothache_relevance_evidence(post: SourcePost) -> bool:
     oral_ulcer_cues = ["口腔溃疡", "溃疡", "口内炎", "구내염"]
     if any(cue in text for cue in oral_ulcer_cues) and not any(cue in text for cue in pain_cues + pain_related_care_cues):
         return False
-    return any(cue in text for cue in pain_cues + pain_related_care_cues)
+    if any(cue in text for cue in pain_cues + pain_related_care_cues):
+        return True
+
+    japanese_pain_patterns = [
+        r"歯.{0,12}痛",
+        r"奥歯.{0,12}痛",
+        r"前歯.{0,12}痛",
+        r"親知らず.{0,12}痛",
+        r"虫歯.{0,16}痛",
+        r"歯茎.{0,12}痛",
+        r"矯正.{0,16}痛",
+        r"治療.{0,16}痛",
+        r"麻酔.{0,16}痛",
+        r"抜歯.{0,16}痛",
+        r"痛.{0,16}歯",
+        r"痛.{0,16}矯正",
+        r"痛.{0,16}治療",
+        r"痛.{0,16}麻酔",
+        r"痛.{0,16}抜歯",
+    ]
+    if any(re.search(pattern, normalized) for pattern in japanese_pain_patterns):
+        return True
+
+    korean_pain_patterns = [
+        r"치아.{0,12}(아프|통증|痛)",
+        r"잇몸.{0,12}(아프|통증|痛)",
+        r"사랑니.{0,12}(아프|통증|痛)",
+        r"(아프|통증).{0,12}(치아|잇몸|사랑니)",
+    ]
+    if any(re.search(pattern, normalized) for pattern in korean_pain_patterns):
+        return True
+
+    chinese_pain_patterns = [
+        r"牙.{0,12}[疼痛]",
+        r"牙龈.{0,12}[疼痛]",
+        r"智齿.{0,12}[疼痛]",
+        r"[疼痛].{0,12}牙",
+    ]
+    return any(re.search(pattern, normalized) for pattern in chinese_pain_patterns)
 
 
 def apply_specific_experiencer_safeguard(post: SourcePost, label: ExperiencerLabel) -> ExperiencerLabel:
