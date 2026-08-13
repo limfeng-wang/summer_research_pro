@@ -897,9 +897,19 @@ def _normalize_csm_payload_enums(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _normalize_csm_unit_enums(unit: dict[str, Any]) -> None:
+    support_type = _clean_enum_text(unit.get("support_type"))
     assertion = _clean_enum_text(unit.get("assertion"))
     temporality = _clean_enum_text(unit.get("temporality"))
     sentiment = _clean_enum_text(unit.get("sentiment_or_outcome"))
+
+    if support_type in {"certain", "direct", "directly_supported", "source_supported"}:
+        unit["support_type"] = "explicit"
+    elif support_type in {"uncertain", "possible", "partially_supported", "indirect"}:
+        unit["support_type"] = "implicit"
+    elif support_type in {"planned"}:
+        unit["support_type"] = "explicit"
+    elif support_type in {"not_supported", "unsupported_by_source", "none"}:
+        unit["support_type"] = "unsupported"
 
     if assertion in {"past", "current", "future", "unknown"}:
         if not temporality or temporality == "unknown":
@@ -913,6 +923,24 @@ def _normalize_csm_unit_enums(unit: dict[str, Any]) -> None:
         unit["assertion"] = "uncertain"
     elif assertion in {"plan", "future"}:
         unit["assertion"] = "planned"
+    elif assertion in {
+        "effective",
+        "ineffective",
+        "positive",
+        "negative",
+        "neutral",
+        "improved",
+        "relieved",
+        "relief",
+        "helpful",
+        "worked",
+        "not_effective",
+        "failed",
+        "no_effect",
+        "worse",
+        "worsened",
+    }:
+        unit["assertion"] = "present"
 
     if temporality in {"present", "ongoing", "now"}:
         unit["temporality"] = "current"
@@ -920,13 +948,36 @@ def _normalize_csm_unit_enums(unit: dict[str, Any]) -> None:
         unit["temporality"] = "past"
     elif temporality in {"planned"}:
         unit["temporality"] = "future"
+    elif temporality in {"general", "generalized", "timeless", "habitual", "not_applicable", "n/a", "na"}:
+        unit["temporality"] = "unknown"
 
-    if sentiment in {"mixed", "ambivalent", "both", "unclear", "not_applicable", "n/a", "na"}:
+    if sentiment in {
+        "mixed",
+        "ambivalent",
+        "both",
+        "unclear",
+        "uncertain",
+        "not_applicable",
+        "n/a",
+        "na",
+    }:
         unit["sentiment_or_outcome"] = "unknown"
-    elif sentiment in {"improved", "relieved", "relief", "helpful", "worked"}:
+    elif sentiment in {
+        "improved",
+        "relieved",
+        "relief",
+        "helpful",
+        "worked",
+        "partially_effective",
+        "partial_effective",
+        "partly_effective",
+        "somewhat_effective",
+    }:
         unit["sentiment_or_outcome"] = "effective"
     elif sentiment in {"not_effective", "failed", "no_effect", "worse", "worsened"}:
         unit["sentiment_or_outcome"] = "ineffective"
+    elif sentiment in {"harmful", "harm", "adverse", "bad"}:
+        unit["sentiment_or_outcome"] = "negative"
 
 
 def _clean_enum_text(value: object) -> str:

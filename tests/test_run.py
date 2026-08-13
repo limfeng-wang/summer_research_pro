@@ -5,6 +5,7 @@ from dental_ai.classification_postprocess import apply_rec_postprocessing
 from dental_ai.run import (
     _apply_pre_extraction_classification_safeguards,
     _hf_manifest_config,
+    _load_processed_post_ids,
     _load_output_map,
     _select_shard,
     _should_extract_csm_result,
@@ -184,6 +185,94 @@ def test_mock_run_supports_sharding_and_manifest_fields(tmp_path):
     assert manifest["rows_attempted"] == 2
     assert manifest["shard_count"] == 2
     assert manifest["shard_index"] == 1
+
+
+def test_mock_run_applies_offset_before_limit_and_sharding(tmp_path):
+    input_path = tmp_path / "input.jsonl"
+    out_dir = tmp_path / "out"
+    rows = [
+        SourcePost(post_id=f"p{i}", country=Country.CHI, language=Language.ZH, text_clean="牙疼").model_dump(mode="json")
+        for i in range(12)
+    ]
+    input_path.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n", encoding="utf-8")
+
+    assert run_main(
+        [
+            "--input",
+            str(input_path),
+            "--out-dir",
+            str(out_dir),
+            "--backend",
+            "mock",
+            "--offset",
+            "4",
+            "--limit",
+            "6",
+            "--shard-count",
+            "2",
+            "--shard-index",
+            "1",
+        ]
+    ) == 0
+
+    annotations = [json.loads(line) for line in (out_dir / "annotations.jsonl").read_text(encoding="utf-8").splitlines()]
+    manifest = json.loads((out_dir / "run_manifest.json").read_text(encoding="utf-8"))
+
+    assert [row["post_id"] for row in annotations] == ["p7", "p8", "p9"]
+    assert manifest["input_rows_total"] == 12
+    assert manifest["input_offset"] == 4
+    assert manifest["input_limit"] == 6
+    assert manifest["input_rows_after_offset"] == 8
+    assert manifest["input_rows_after_limit"] == 6
+    assert manifest["rows_attempted"] == 3
+
+
+def test_load_processed_post_ids_reads_sharded_output_dirs(tmp_path):
+    run_dir = tmp_path / "prior"
+    shard_0 = run_dir / "shard_000"
+    shard_1 = run_dir / "shard_001"
+    shard_0.mkdir(parents=True)
+    shard_1.mkdir(parents=True)
+    (shard_0 / "annotations.jsonl").write_text('{"post_id":"p1"}\n', encoding="utf-8")
+    (shard_1 / "annotations.jsonl").write_text('{"record_id":"p2"}\n', encoding="utf-8")
+
+    assert _load_processed_post_ids([str(run_dir)]) == {"p1", "p2"}
+
+
+def test_mock_run_skips_previously_processed_ids_before_limit(tmp_path):
+    input_path = tmp_path / "input.jsonl"
+    prior_dir = tmp_path / "prior"
+    out_dir = tmp_path / "out"
+    rows = [
+        SourcePost(post_id=f"p{i}", country=Country.CHI, language=Language.ZH, text_clean="牙疼").model_dump(mode="json")
+        for i in range(8)
+    ]
+    input_path.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n", encoding="utf-8")
+    prior_dir.mkdir()
+    (prior_dir / "annotations.jsonl").write_text('{"post_id":"p0"}\n{"post_id":"p1"}\n', encoding="utf-8")
+
+    assert run_main(
+        [
+            "--input",
+            str(input_path),
+            "--out-dir",
+            str(out_dir),
+            "--backend",
+            "mock",
+            "--skip-processed-from",
+            str(prior_dir),
+            "--limit",
+            "3",
+        ]
+    ) == 0
+
+    annotations = [json.loads(line) for line in (out_dir / "annotations.jsonl").read_text(encoding="utf-8").splitlines()]
+    manifest = json.loads((out_dir / "run_manifest.json").read_text(encoding="utf-8"))
+
+    assert [row["post_id"] for row in annotations] == ["p2", "p3", "p4"]
+    assert manifest["processed_skip_ids"] == 2
+    assert manifest["input_rows_after_processed_skip"] == 6
+    assert manifest["input_rows_after_limit"] == 3
 
 
 def test_pre_extraction_safeguard_blocks_generic_wisdom_tooth_logistics():

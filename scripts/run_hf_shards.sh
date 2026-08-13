@@ -10,6 +10,9 @@ CLASSIFICATION_MODE="${CLASSIFICATION_MODE:-combined}"
 SHARD_COUNT="${SHARD_COUNT:-2}"
 GPU_LIST="${GPU_LIST:-0,1}"
 RESUME="${RESUME:-1}"
+OFFSET="${OFFSET:-0}"
+SKIP_PROCESSED_FROM="${SKIP_PROCESSED_FROM:-}"
+FORCE_PROCESS_SKIPPED="${FORCE_PROCESS_SKIPPED:-0}"
 LIMIT="${LIMIT:-0}"
 FILTER_BNB_WARNINGS="${FILTER_BNB_WARNINGS:-1}"
 MAX_LOG_BYTES="${MAX_LOG_BYTES:-100000000}"
@@ -79,6 +82,18 @@ for (( shard=0; shard<SHARD_COUNT; shard++ )); do
   )
   if [[ "$RESUME" == "1" ]]; then
     cmd+=(--resume)
+  fi
+  if [[ "$OFFSET" != "0" ]]; then
+    cmd+=(--offset "$OFFSET")
+  fi
+  if [[ -n "$SKIP_PROCESSED_FROM" ]]; then
+    IFS=',' read -r -a SKIP_PATHS <<< "$SKIP_PROCESSED_FROM"
+    for skip_path in "${SKIP_PATHS[@]}"; do
+      cmd+=(--skip-processed-from "$skip_path")
+    done
+  fi
+  if [[ "$FORCE_PROCESS_SKIPPED" == "1" ]]; then
+    cmd+=(--force-process-skipped)
   fi
   if [[ "$LIMIT" != "0" ]]; then
     cmd+=(--limit "$LIMIT")

@@ -436,6 +436,55 @@ def test_normalize_csm_payload_enums_repairs_model_enum_drift():
     assert result.units[1].sentiment_or_outcome.value == "effective"
 
 
+def test_normalize_csm_payload_enums_repairs_observed_server_drift():
+    payload = {
+        "post_id": "p1",
+        "country": "CHI",
+        "language": "zh",
+        "units": [
+            {
+                "unit_id": "p1_u001",
+                "domain": "Coping and Management",
+                "evidence_span_original": "吃药后缓解了一些",
+                "surface_text_working": "吃药部分缓解",
+                "normalized_concept_en": "Partial medication relief",
+                "concept_status": "new_candidate",
+                "support_type": "explicit",
+                "assertion": "effective",
+                "temporality": "general",
+                "sentiment_or_outcome": "partially_effective",
+                "confidence": 0.9,
+                "judge_verdict": "needs_human_review",
+            },
+            {
+                "unit_id": "p1_u002",
+                "domain": "Symptom Description",
+                "evidence_span_original": "还是疼",
+                "surface_text_working": "仍然疼",
+                "normalized_concept_en": "Persistent pain",
+                "concept_status": "new_candidate",
+                "support_type": "uncertain",
+                "assertion": "ineffective",
+                "temporality": "planned",
+                "sentiment_or_outcome": "harmful",
+                "confidence": 0.8,
+                "judge_verdict": "needs_human_review",
+            },
+        ],
+    }
+
+    normalized = _normalize_csm_payload_enums(payload)
+    result = ExtractionResult.model_validate(normalized)
+
+    assert result.units[0].assertion == AssertionStatus.PRESENT
+    assert result.units[0].temporality.value == "unknown"
+    assert result.units[0].sentiment_or_outcome.value == "effective"
+    assert result.units[1].support_type.value == "implicit"
+    assert result.units[1].assertion == AssertionStatus.PRESENT
+    assert result.units[1].temporality.value == "future"
+    assert result.units[1].sentiment_or_outcome.value == "negative"
+
+
 def test_json_object_parser_strips_thinking_text():
     text = '<think>reasoning that should not be parsed</think>{"unit_verdicts":[]}'
 

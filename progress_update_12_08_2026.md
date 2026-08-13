@@ -32,8 +32,6 @@ Supporting but partly outdated project plan: [`PROJECT-total.md`](PROJECT-total.
 
 ### Old Workflow
 
-
-
 ```mermaid
 flowchart LR
     A[Raw social media posts] --> B[Direct CSM prompt]

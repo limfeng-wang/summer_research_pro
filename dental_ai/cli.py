@@ -160,6 +160,18 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--config", default="configs/model_stack.yaml", help="Model stack config")
     run.add_argument("--models-root", default="/hdd-storage/lawrencelcty/huggingface/models")
     run.add_argument("--hf-stage", choices=("classify", "full"), default="classify")
+    run.add_argument("--offset", type=int, default=0, help="Skip this many input rows before applying --limit")
+    run.add_argument(
+        "--skip-processed-from",
+        action="append",
+        default=[],
+        help="Output directory or annotations JSONL whose final post IDs should be skipped before applying --limit",
+    )
+    run.add_argument(
+        "--force-process-skipped",
+        action="store_true",
+        help="Ignore --skip-processed-from guards and process matching rows anyway",
+    )
     run.add_argument("--limit", type=int, default=0, help="Optional max rows for smoke tests")
     run.add_argument("--resume", action="store_true", help="Resume from existing checkpoint/output files")
     run.add_argument("--shard-count", type=int, default=1, help="Number of contiguous input shards")
@@ -327,6 +339,12 @@ def _cmd_run_hierarchical(args: argparse.Namespace) -> int:
         "--hf-stage",
         args.hf_stage,
     ]
+    if args.offset:
+        argv.extend(["--offset", str(args.offset)])
+    for path in args.skip_processed_from:
+        argv.extend(["--skip-processed-from", path])
+    if args.force_process_skipped:
+        argv.append("--force-process-skipped")
     if args.limit:
         argv.extend(["--limit", str(args.limit)])
     if args.resume:

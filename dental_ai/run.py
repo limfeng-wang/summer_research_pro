@@ -37,6 +37,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--backend", choices=("mock", "hf"), default="mock")
     parser.add_argument("--config", default="configs/model_stack.yaml", help="Model stack config")
     parser.add_argument("--models-root", default="/hdd-storage/lawrencelcty/huggingface/models")
+    parser.add_argument("--offset", type=int, default=0, help="Skip this many input rows before applying --limit")
+    parser.add_argument(
+        "--skip-processed-from",
+        action="append",
+        default=[],
+        help="Output directory or annotations JSONL whose final post IDs should be skipped before applying --limit",
+    )
+    parser.add_argument(
+        "--force-process-skipped",
+        action="store_true",
+        help="Ignore --skip-processed-from guards and process matching rows anyway",
+    )
     parser.add_argument("--limit", type=int, default=0, help="Optional max rows for smoke tests")
     parser.add_argument("--resume", action="store_true", help="Resume from existing checkpoint/output files")
     parser.add_argument("--shard-count", type=int, default=1, help="Number of contiguous input shards")
@@ -55,7 +67,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    input_posts = read_posts_jsonl(args.input)
+    if args.offset < 0:
+        raise ValueError("--offset must be >= 0")
+    if args.limit < 0:
+        raise ValueError("--limit must be >= 0")
+
+    all_input_posts = read_posts_jsonl(args.input)
+    input_posts = all_input_posts[args.offset :]
+    input_rows_after_offset = len(input_posts)
+    processed_skip_ids = _load_processed_post_ids(args.skip_processed_from)
+    if processed_skip_ids and not args.force_process_skipped:
+        input_posts = [post for post in input_posts if post.post_id not in processed_skip_ids]
+    input_rows_after_processed_skip = len(input_posts)
     if args.limit:
         input_posts = input_posts[: args.limit]
     posts = _select_shard(input_posts, shard_count=args.shard_count, shard_index=args.shard_index)
@@ -117,6 +140,14 @@ def main(argv: list[str] | None = None) -> int:
         models_root=args.models_root if args.backend == "hf" else "",
         attempted=len(posts),
         errors=errors,
+        input_rows_total=len(all_input_posts),
+        input_offset=args.offset,
+        input_limit=args.limit,
+        skip_processed_from=args.skip_processed_from,
+        force_process_skipped=args.force_process_skipped,
+        processed_skip_ids=len(processed_skip_ids),
+        input_rows_after_offset=input_rows_after_offset,
+        input_rows_after_processed_skip=input_rows_after_processed_skip,
         input_rows=len(input_posts),
         shard_count=args.shard_count,
         shard_index=args.shard_index,
@@ -124,6 +155,33 @@ def main(argv: list[str] | None = None) -> int:
         classification_mode=args.classification_mode if args.backend == "hf" else "",
     )
     return 0
+
+
+def _load_processed_post_ids(paths: Iterable[str]) -> set[str]:
+    post_ids: set[str] = set()
+    for raw_path in paths:
+        path = Path(raw_path)
+        candidates = [path]
+        if path.is_dir():
+            shard_dirs = sorted(item for item in path.glob("shard_*") if item.is_dir())
+            if shard_dirs:
+                candidates = [item / "annotations.jsonl" for item in shard_dirs]
+            else:
+                candidates = [path / "annotations.jsonl"]
+        for candidate in candidates:
+            if not candidate.exists():
+                raise FileNotFoundError(f"Processed output path does not exist: {candidate}")
+            for line_number, line in enumerate(candidate.read_text(encoding="utf-8").splitlines(), start=1):
+                if not line.strip():
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    raise ValueError(f"Invalid processed JSONL line {candidate}:{line_number}: {exc}") from exc
+                post_id = str(record.get("post_id") or record.get("record_id") or "").strip()
+                if post_id:
+                    post_ids.add(post_id)
+    return post_ids
 
 
 def _mock_annotator() -> HierarchicalAnnotator:
@@ -600,6 +658,14 @@ def _write_manifest(
     models_root: str,
     attempted: int,
     errors: list[dict[str, Any]],
+    input_rows_total: int,
+    input_offset: int,
+    input_limit: int,
+    skip_processed_from: list[str],
+    force_process_skipped: bool,
+    processed_skip_ids: int,
+    input_rows_after_offset: int,
+    input_rows_after_processed_skip: int,
     input_rows: int,
     shard_count: int,
     shard_index: int,
@@ -617,6 +683,14 @@ def _write_manifest(
         "input": input_path,
         "backend": backend,
         "stage": stage,
+        "input_rows_total": input_rows_total,
+        "input_offset": input_offset,
+        "input_limit": input_limit,
+        "skip_processed_from": skip_processed_from,
+        "force_process_skipped": force_process_skipped,
+        "processed_skip_ids": processed_skip_ids,
+        "input_rows_after_offset": input_rows_after_offset,
+        "input_rows_after_processed_skip": input_rows_after_processed_skip,
         "input_rows_after_limit": input_rows,
         "shard_count": shard_count,
         "shard_index": shard_index,
