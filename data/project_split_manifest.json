@@ -957,5 +957,29 @@
   "disjointness_audit": {
     "ok": true,
     "overlaps": []
-  }
+  },
+  "main_current_rows": 36721,
+  "main_current_sources": {
+    "data/raw_data/CHI_2023-07-01_2026-06-30.xlsx": 3313,
+    "data/raw_data/JPN_2023-07-01_2026-06-30.xlsx": 25168,
+    "data/raw_data/KOR_2023-07-01_2026-06-30.xlsx": 8032,
+    "data/xhs_牙痛数据_补充.xlsx": 208
+  },
+  "post_split_supplements": [
+    {
+      "source_file": "data/xhs_牙痛数据_补充.xlsx",
+      "source_sheet": "牙痛数据",
+      "dedupe_rule": "first row per exact 正文 body; skip bodies and record_ids already present in main corpus",
+      "append_script": "scripts/append_xhs_supplement.py",
+      "rows_appended": 208,
+      "record_id_prefix": "CHI_",
+      "country": "CHI",
+      "language": "zh",
+      "platform": "xiaohongshu",
+      "length_cutpoints": {
+        "short_max": 99,
+        "medium_max": 341
+      }
+    }
+  ]
 }

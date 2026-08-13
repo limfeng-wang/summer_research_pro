@@ -249,6 +249,33 @@ OUT_BASE=outputs/main_pilot_1000_sharded \
 bash scripts/run_hf_shards.sh
 ```
 
+To run the next contiguous 10K window after the first 10K has fully finished,
+skip the processed input prefix before limiting and sharding:
+
+```bash
+GPU_LIST=0,1,2 \
+SHARD_COUNT=3 \
+OFFSET=10000 \
+LIMIT=10000 \
+OUT_BASE=outputs/main_pilot_10000_rows_10001_20000_sharded_3gpu \
+bash scripts/run_hf_shards.sh
+```
+
+For extra protection against accidental overlap with a previous finalized run,
+also pass that previous sharded output directory. This skips final
+`annotations.jsonl` post IDs before applying `LIMIT`; intermediate checkpoints
+are intentionally not treated as finalized rows.
+
+```bash
+GPU_LIST=0,1,2 \
+SHARD_COUNT=3 \
+OFFSET=10000 \
+LIMIT=10000 \
+SKIP_PROCESSED_FROM=outputs/main_pilot_10000_sharded_3gpu \
+OUT_BASE=outputs/main_pilot_10000_rows_10001_20000_sharded_3gpu \
+bash scripts/run_hf_shards.sh
+```
+
 Merge finished shards:
 
 ```bash
