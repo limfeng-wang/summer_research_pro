@@ -1,0 +1,23 @@
+{
+  "input": "data/raw_main_llm_input_no_gold.jsonl",
+  "processed": "outputs/main_pilot_10000_sharded_3gpu_merged",
+  "output": "data/raw_main_llm_input_next10k_kor8032_chi208_jpn1760_no_prev10k.jsonl",
+  "target_rows": 10000,
+  "seed": 20260814,
+  "jpn_mode": "random",
+  "preserve_output_order": false,
+  "input_rows": 36721,
+  "processed_ids_excluded": 10000,
+  "input_rows_skipped_as_processed": 10000,
+  "remaining_by_country": {
+    "KOR": 8032,
+    "CHI": 208,
+    "JPN": 18481
+  },
+  "selected_by_country": {
+    "JPN": 1760,
+    "KOR": 8032,
+    "CHI": 208
+  },
+  "selected_rows": 10000
+}
