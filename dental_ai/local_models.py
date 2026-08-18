@@ -14,6 +14,7 @@ from dental_ai.classification_gold import ClassificationGoldRecord, canonical_po
 from dental_ai.model_config import DEFAULT_MODELS_ROOT, ModelStackConfig
 from dental_ai.prompts import (
     COMBINED_CLASSIFICATION_PROMPT,
+    CSM_RESCUE_CLASSIFICATION_PROMPT,
     CSM_EXTRACTION_PROMPT,
     JUDGE_PROMPT,
     R1_CLASSIFICATION_PROMPT,
@@ -357,6 +358,43 @@ class LocalCombinedClassifier:
         }
         self.last_postprocess_rules = relevance_processed.rule_dicts + processed.rule_dicts
         return relevance, processed.experiencer_label, processed.content_function
+
+
+class LocalCSMRescueClassifier:
+    """High-recall second-pass gate for likely CSM false negatives."""
+
+    def __init__(self, lm: LocalCausalLM):
+        self.lm = lm
+
+    def classify(self, post: SourcePost, first_pass: dict[str, Any] | None = None) -> dict[str, Any]:
+        text = self.lm.generate_json_text(
+            CSM_RESCUE_CLASSIFICATION_PROMPT,
+            {
+                "post": _post_payload(post, compact=True, max_text_chars=2200),
+                "first_pass": first_pass or {},
+            },
+            GenerationConfig(max_new_tokens=192),
+        )
+        payload = _extract_json_object(text)
+        eligible = bool(payload.get("rescue_csm_eligible"))
+        experiencer = _nullable_str(payload.get("rescued_experiencer_label"))
+        content = _nullable_str(payload.get("rescued_content_function"))
+        if experiencer not in {"E1", "E2"}:
+            experiencer = None
+        if content not in {"C1", "C2"}:
+            content = None
+        if not eligible or experiencer is None or content is None:
+            eligible = False
+            experiencer = None
+            content = None
+        return {
+            "rescue_csm_eligible": eligible,
+            "rescued_experiencer_label": experiencer,
+            "rescued_content_function": content,
+            "rescue_evidence": str(payload.get("rescue_evidence") or "")[:120],
+            "reason": str(payload.get("reason") or "")[:500],
+            "raw_text": text[:1000],
+        }
 
 
 class LocalCSMExtractor:
@@ -1187,6 +1225,17 @@ def _extract_label_payload(text: str, required_keys: list[str]) -> dict[str, Any
     if missing:
         raise ValueError(f"Model output missing required label(s) {missing}: {text[:500]!r}")
     return payload
+
+
+def _nullable_str(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        value = value.strip()
+        if not value or value.lower() == "null":
+            return None
+        return value
+    return str(value).strip() or None
 
 
 def _looks_like_processor_model_error(exc: Exception) -> bool:

@@ -95,6 +95,56 @@ Return compact strict JSON only. Put the three labels first. Evidence values mus
 """
 
 
+CSM_RESCUE_CLASSIFICATION_PROMPT = """\
+You are doing a high-recall rescue review for a multilingual toothache narrative study.
+Use original source text as authoritative.
+
+The first-pass classifier already marked this post as not eligible for CSM extraction.
+Your task is NOT to redo the whole taxonomy. Your task is only to decide whether
+the post should nevertheless enter CSM extraction as a self/proxy dental-pain
+experience.
+
+Return rescue_csm_eligible=true only when the source text contains a specific
+self or proxy dental-pain experience that could support CSM units.
+
+RESCUE POSITIVE CRITERIA
+- Self report (E1): author describes their own tooth/gingival pain, painful dental
+  condition, painful treatment/recovery, swelling/inflammation with pain, sleep/eating/work
+  disruption, care-seeking because of pain, coping with pain, or pain-related emotional burden.
+- Proxy report (E2): a specific family member, friend, patient, spouse, child, or
+  directly described person has a tooth/gingival pain experience.
+- Content function for rescued rows must be C1 or C2:
+  - C1: lived experience narrative or symptom/treatment/recovery account.
+  - C2: genuine advice/help-seeking about the author's/specific person's dental pain.
+
+RESCUE NEGATIVE CRITERIA
+- Generic advice/knowledge without a specific experiencer remains not rescued.
+- Advertising or product/clinic/service promotion remains not rescued unless a specific
+  self/proxy pain experience is substantial enough for CSM extraction.
+- Jokes, fandom references, stage gestures, metaphors, usernames, slogans, and lists like
+  "headache/toothache/menstrual pain" without a real dental-pain experience remain not rescued.
+- Oral ulcer only, cosmetic dentistry, routine checkup, routine cleaning, asymptomatic cavities,
+  or generic procedure logistics remain not rescued unless tooth/gingival pain or painful recovery
+  is explicit.
+
+KOREAN BOUNDARY NOTES
+- Rescue when Korean text explicitly describes a real self/proxy dental pain state:
+  "이가 아파", "치통이 심하다", "사랑니가 아프다", "잇몸이 붓고 아프다",
+  "치과 치료/발치 후 아프다", "진통제/타이레놀/이부프로펜을 먹었다" tied to dental pain.
+- Do not rescue Korean joke/fandom/metaphor uses of 치통, e.g. cute pose "치통 포즈",
+  usernames, "두통 치통 생리통" slogan use, or fictional/general mentions without real experience.
+
+Return compact strict JSON only:
+{
+  "rescue_csm_eligible": true,
+  "rescued_experiencer_label": "E1|E2|null",
+  "rescued_content_function": "C1|C2|null",
+  "rescue_evidence": "short exact source phrase, max 40 source characters",
+  "reason": "short reason"
+}
+"""
+
+
 R1_CLASSIFICATION_PROMPT = """\
 You are applying the frozen codebook for a multilingual toothache narrative study.
 The post is already R1 toothache-relevant. Use original source text as authoritative.
