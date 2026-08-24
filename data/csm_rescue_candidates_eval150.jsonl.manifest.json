@@ -1,0 +1,26 @@
+{
+  "run_dirs": [
+    "outputs/eval_holdout_150_latest"
+  ],
+  "output": "data/csm_rescue_candidates_eval150.jsonl",
+  "candidate_rows": 78,
+  "country_counts": {
+    "CHI": 20,
+    "JPN": 11,
+    "KOR": 47
+  },
+  "reason_counts": {
+    "keyword_hit_specific_noneligible_content": 19,
+    "keyword_hit_e3_with_personal_proxy_anchor": 8,
+    "keyword_hit_r0": 13,
+    "kor_all_noneligible": 47
+  },
+  "first_pass_label_counts": {
+    "R1|E1|C4": 10,
+    "R1|E3|C3": 5,
+    "R1|E3|C4": 3,
+    "R1|E1|C3": 2,
+    "R0|None|None": 51,
+    "R1|E1|C5": 7
+  }
+}
