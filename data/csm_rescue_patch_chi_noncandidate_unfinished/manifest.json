@@ -1,0 +1,36 @@
+{
+  "first_pass_runs": [
+    "outputs/main_pilot_10000_sharded_3gpu_merged",
+    "outputs/main_pilot_20000_sharded_3gpu_merged_repaired",
+    "outputs/main_pilot_36k_sharded_3gpu_merged"
+  ],
+  "prior_rescue_merged": "outputs/csm_rescue_extraction_full_sharded_merged",
+  "out_dir": "data/csm_rescue_patch_chi_noncandidate_unfinished",
+  "first_pass_unique_rows": 36720,
+  "original_policy_candidate_rows": 17929,
+  "first_pass_csm_eligible_rows": 8100,
+  "chi_noncandidate_to_classify_rows": 1672,
+  "unfinished_prior_rescue_positive_rows": 714,
+  "combined_candidate_rows": 2386,
+  "country_counts": {
+    "candidates_to_classify": {
+      "CHI": 1672
+    },
+    "unfinished_positive": {
+      "CHI": 85,
+      "JPN": 383,
+      "KOR": 246
+    },
+    "combined": {
+      "CHI": 1757,
+      "JPN": 383,
+      "KOR": 246
+    }
+  },
+  "files": {
+    "candidates_to_classify": "data/csm_rescue_patch_chi_noncandidate_unfinished/candidates_to_classify.jsonl",
+    "unfinished_positive_candidates": "data/csm_rescue_patch_chi_noncandidate_unfinished/unfinished_positive_candidates.jsonl",
+    "unfinished_positive_decisions": "data/csm_rescue_patch_chi_noncandidate_unfinished/unfinished_positive_decisions.jsonl",
+    "candidates_all": "data/csm_rescue_patch_chi_noncandidate_unfinished/candidates_all.jsonl"
+  }
+}
