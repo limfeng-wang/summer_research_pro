@@ -1,33 +1,33 @@
 {
   "combined_unique_posts": 36720,
   "r1_anyE_anyC": {
-    "total_rows": 13034,
+    "total_rows": 13176,
     "rows_by_country": {
-      "CHI": 554,
+      "CHI": 696,
       "JPN": 11105,
       "KOR": 1375
     }
   },
   "r1_anyE_c1c2": {
-    "total_rows": 13034,
+    "total_rows": 13176,
     "rows_by_country": {
-      "CHI": 554,
+      "CHI": 696,
       "JPN": 11105,
       "KOR": 1375
     }
   },
   "r1_e1_anyC": {
-    "total_rows": 12689,
+    "total_rows": 12829,
     "rows_by_country": {
-      "CHI": 547,
+      "CHI": 687,
       "JPN": 10819,
       "KOR": 1323
     }
   },
   "r1_e1_c1c2": {
-    "total_rows": 12689,
+    "total_rows": 12829,
     "rows_by_country": {
-      "CHI": 547,
+      "CHI": 687,
       "JPN": 10819,
       "KOR": 1323
     }

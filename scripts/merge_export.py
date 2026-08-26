@@ -4,10 +4,13 @@ from collections import Counter
 
 FIRST_PASS_DIRS = [
     Path("outputs/main_pilot_10000_sharded_3gpu_merged"),
-    Path("outputs/main_pilot_20000_sharded_3gpu_merged_repaired"),
+    Path("outputs/main_pilot_20000_sharded_3gpu_merged"),
     Path("outputs/main_pilot_36k_sharded_3gpu_merged"),
 ]
-RESCUE_DIR = Path("outputs/csm_rescue_extraction_full_sharded_merged")
+RESCUE_DIRS = [
+    Path("outputs/csm_rescue_extraction_full_sharded_merged"),
+    Path("outputs/csm_rescue_patch_extraction_sharded_merged"),
+]
 OUT_DIR = Path("outputs/final_export")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -58,13 +61,15 @@ for run_dir in FIRST_PASS_DIRS:
             corpus[pid] = row
             source_pass[pid] = "first_pass"
 
-# Rescue rows override first-pass negatives only when they contain actual units.
-for row in read_annotations(RESCUE_DIR):
-    pid = post_id(row)
-    if pid and len(row.get("units") or []) > 0:
-        row["_source_pass"] = "rescue_pass"
-        corpus[pid] = row
-        source_pass[pid] = "rescue_pass"
+# Rescue rows override first-pass rows only when they contain accepted CSM units.
+for run_dir in RESCUE_DIRS:
+    for row in read_annotations(run_dir):
+        pid = post_id(row)
+        if pid and has_accepted_unit(row):
+            row["_source_pass"] = "rescue_pass"
+            row["_source_run"] = str(run_dir)
+            corpus[pid] = row
+            source_pass[pid] = "rescue_pass"
 
 ANY_E = {"E1", "E2", "E3"}
 E1_ONLY = {"E1"}
