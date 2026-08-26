@@ -39,10 +39,44 @@ def rows_by_country(rows):
     counts = Counter(row.get("country") for row in rows)
     return {country: counts[country] for country in ["CHI", "JPN", "KOR"] if counts[country]}
 
+def accepted_units(rows):
+    return [
+        (row.get("country"), unit)
+        for row in rows
+        for unit in (row.get("units") or [])
+        if unit.get("judge_verdict") == "accept"
+    ]
+
+def accepted_units_by_domain(rows):
+    counts = Counter(unit.get("domain") for _, unit in accepted_units(rows))
+    return dict(sorted(counts.items()))
+
+def accepted_units_by_country(rows):
+    counts = Counter(country for country, _ in accepted_units(rows))
+    return {country: counts[country] for country in ["CHI", "JPN", "KOR"] if counts[country]}
+
+def accepted_units_by_country_domain(rows):
+    counts = {country: Counter() for country in ["CHI", "JPN", "KOR"]}
+    for country, unit in accepted_units(rows):
+        counts[country][unit.get("domain")] += 1
+    return {country: dict(sorted(domain_counts.items())) for country, domain_counts in counts.items() if domain_counts}
+
+def label_bucket(rows):
+    return {
+        "total_rows": len(rows),
+        "rows_by_country": rows_by_country(rows),
+    }
+
 def bucket(rows):
     return {
         "total_rows": len(rows),
         "rows_by_country": rows_by_country(rows),
+        "accepted_unit_count": len(accepted_units(rows)),
+        "accepted_units_by_country": accepted_units_by_country(rows),
+        "accepted_units_by_domain": accepted_units_by_domain(rows),
+        "accepted_units_by_country_domain": accepted_units_by_country_domain(rows),
+        "all_unit_count": sum(len(row.get("units") or []) for row in rows),
+        "source_run_rows": dict(sorted(Counter(row.get("_source_run", "first_pass") for row in rows).items())),
     }
 
 def write_jsonl(path, rows):
@@ -76,6 +110,20 @@ E1_ONLY = {"E1"}
 ANY_C = {"C1", "C2", "C3", "C4", "C5"}
 C1C2 = {"C1", "C2"}
 
+all_rows = list(corpus.values())
+r1_rows = [row for row in all_rows if row.get("relevance_label") == "R1"]
+r1_e1_rows = [row for row in r1_rows if row.get("experiencer_label") == "E1"]
+r1_anyE_c1c2_label = [
+    row
+    for row in r1_rows
+    if row.get("experiencer_label") in ANY_E and row.get("content_function") in C1C2
+]
+r1_e1_c1c2_label = [
+    row
+    for row in r1_rows
+    if row.get("experiencer_label") == "E1" and row.get("content_function") in C1C2
+]
+
 r1_anyE_anyC = [
     row for row in corpus.values() if matches_filter(row, experiencers=ANY_E, content_functions=ANY_C)
 ]
@@ -95,11 +143,21 @@ write_jsonl(OUT_DIR / "r1_e1_anyC_with_accepted_units.jsonl", r1_e1_anyC)
 write_jsonl(OUT_DIR / "r1_e1_c1c2_with_accepted_units.jsonl", r1_e1_c1c2)
 
 summary = {
+    "annotation_phase_finalized": True,
+    "corpus_funnel_label_counts": {
+        "grand_total_rows": label_bucket(all_rows),
+        "r1": label_bucket(r1_rows),
+        "r1_e1": label_bucket(r1_e1_rows),
+        "r1_anyE_c1c2": label_bucket(r1_anyE_c1c2_label),
+        "r1_e1_c1c2": label_bucket(r1_e1_c1c2_label),
+    },
+    "accepted_csm_exports": {
+        "r1_anyE_anyC": bucket(r1_anyE_anyC),
+        "r1_anyE_c1c2": bucket(r1_anyE_c1c2),
+        "r1_e1_anyC": bucket(r1_e1_anyC),
+        "r1_e1_c1c2": bucket(r1_e1_c1c2),
+    },
     "combined_unique_posts": len(corpus),
-    "r1_anyE_anyC": bucket(r1_anyE_anyC),
-    "r1_anyE_c1c2": bucket(r1_anyE_c1c2),
-    "r1_e1_anyC": bucket(r1_e1_anyC),
-    "r1_e1_c1c2": bucket(r1_e1_c1c2),
 }
 (OUT_DIR / "r1_anyE_c1c2_export_summary.json").write_text(
     json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
