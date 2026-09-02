@@ -1,0 +1,541 @@
+cluster_id,csm_dimension,labels_in_proposed_family,label_count,modifier_flags_present,source_candidate_ids,reviewer1_decision,reviewer1_canonical_labels,reviewer2_decision,reviewer2_canonical_labels,consensus_decision,consensus_canonical_labels,split_out_labels,merge_rule_invoked,review_notes
+KCL00026,Coping and Management,"Unspecified analgesic medication use
+Unspecified analgesic use
+Unspecified medication use
+Unspecified oral analgesic
+Unspecified oral analgesic medication use
+Unspecified oral analgesic use
+Unspecified oral medication use",7,treatment;uncertainty,KC000077;KC000152;KC000159;KC000204;KC000286;KC000405,merge_all,Unspecified analgesic medication use,merge_all,Unspecified oral analgesic medication use,merge_all,Unspecified analgesic medication use,,synonym_no_added_meaning,
+KCL00010,Coping and Management,"Dietary modification
+Dietary modification due to dental pain
+Dietary modification due to pain
+Dietary modification for dental pain
+Dietary modification for pain
+Dietary modification for pain relief
+Dietary modification to avoid pain",7,consequence,KC000133;KC000156;KC000193;KC000217;KC000311;KC000352;KC000367;KC000540;KC000571,merge_all,Dietary modification,merge_all,Dietary modification,merge_all,Dietary modification,,,
+KCL00007,Coping and Management,"Care seeking
+Dental care seeking
+Dental care seeking due to pain
+Dental care seeking for pain
+Seeking dental care",5,,KC000034;KC000318;KC000411;KC000464,merge_all,Dental care seeking,merge_all,Seeking dental care,merge_all,Dental care seeking,,,
+KCL00012,Coping and Management,"Dietary restriction
+Dietary restriction due to dental pain
+Dietary restriction due to fear
+Dietary restriction due to pain
+Dietary restriction for dental pain",5,consequence,KC000134;KC000218;KC000353;KC000485,merge_all,Dietary restriction,merge_all,Dietary restriction,merge_all,Dietary restriction,,,
+KCL00016,Coping and Management,"Ineffective analgesic
+Ineffective analgesic medication
+Ineffective analgesic use
+Ineffective analgesics",4,treatment,KC000101;KC000447;KC000560,merge_all,Ineffective analgesic,merge_all,Ineffective analgesic,merge_all,Ineffective analgesic,,,
+KCL00001,Coping and Management,"Access barrier
+Access barrier to dental care
+Barrier to dental care access
+Dental care access barrier",4,,KC000003;KC000004;KC000022;KC000583,merge_all,Access barrier,merge_all,Dental care access barrier,merge_all,Access barrier,,,
+KCL00020,Coping and Management,"Non-steroidal anti-inflammatory drug use
+Use of non-steroidal anti-inflammatory drug
+Use of non-steroidal anti-inflammatory drugs
+Use of non-steroidal anti-inflammatory drugs (NSAIDs)",4,,KC000052;KC000236;KC000519,merge_all,NSAID use,merge_all,NSAID use,merge_all,NSAID use,,,
+KCL00003,Coping and Management,"Antibiotic and analgesic prescription
+Antibiotic and NSAID prescription
+Antibiotic prescription
+Antibiotic prescription decision",4,treatment,KC000383;KC000500;KC000575,split,"Antibiotic prescription = Antibiotic prescription + Antibiotic prescription decision
+Analgesic prescription = Antibiotic and analgesic prescription
+Non-steroidal anti-inflammatory drug prescription = Antibiotic and NSAID prescription",merge_all,Antibiotic prescription,split,"Antibiotic prescription = Antibiotic prescription + Antibiotic prescription decision
+Analgesic prescription = Antibiotic and analgesic prescription
+Non-steroidal anti-inflammatory drug prescription = Antibiotic and NSAID prescription",,,
+KCL00023,Coping and Management,"Over-the-counter analgesic efficacy
+Over-the-counter analgesic use
+Over-the-counter medication use
+Over-the-counter topical analgesic use",4,treatment,KC000243;KC000553;KC000569,split,"Over-the-counter medication use = Over-the-counter medication use
+Over-the-counter analgesic use = Over-the-counter analgesic use + Over-the-counter topical analgesic use + Over-the-counter analgesic efficacy",merge_all,Over-the-counter medication use,split,"Over-the-counter medication use = Over-the-counter medication use
+Over-the-counter analgesic use = Over-the-counter analgesic use + Over-the-counter topical analgesic use + Over-the-counter analgesic efficacy",,,
+KCL00005,Coping and Management,"Avoidance of dental care
+Avoidance of seeking dental care
+Dental care avoidance",3,,KC000018;KC000594,merge_all,Dental care avoidance,merge_all,Dental care avoidance,merge_all,Dental care avoidance,,,
+KCL00004,Coping and Management,"Antibiotic use
+Antibiotic use and rest
+Antibiotic use for dental pain",3,treatment,KC000446;KC000483,split,"Antibiotic use = Antibiotic use + Antibiotic use for dental pain
+Rest = Antibiotic use and rest",merge_all,Antibiotic use,split,"Antibiotic use = Antibiotic use + Antibiotic use for dental pain
+Rest = Antibiotic use and rest",,,Rest
+KCL00008,Coping and Management,"Cold compress application
+Cold compress application for dental pain
+Cold compress application for pain relief",3,cause_trigger,KC000249;KC000379,merge_all,Cold compress application,merge_all,Cold compress application,merge_all,Cold compress application,,,
+KCL00021,Coping and Management,"NSAID use
+NSAID use for dental pain
+NSAID use for pain",3,,KC000275;KC000331,merge_all,NSAID use,merge_all,NSAID use,merge_all,NSAID use,,,
+KCL00013,Coping and Management,"Distraction coping
+Distraction coping for dental pain
+Distraction coping for pain",3,,KC000210;KC000438,merge_all,Distraction coping,merge_all,Distraction coping,merge_all,Distraction coping,,,
+KCL00014,Coping and Management,"Endurance
+Endurance of dental pain
+Endurance of pain",3,,KC000212;KC000235,merge_all,Endurance,merge_all,Endurance,merge_all,Endurance,,,
+KCL00006,Coping and Management,"Barrier to dental care seeking
+Barrier to seeking dental care
+Dental care seeking barrier",3,,KC000024;KC000026,merge_all,Dental care seeking barrier,merge_all,Dental care seeking barrier,merge_all,Dental care seeking barrier,,,
+KCL00019,Coping and Management,"Medication use
+Pain medication
+Pain medication use",3,treatment,KC000278;KC000307,merge_all,Medication use,merge_all,Pain medication use,merge_all,Pain medication use,,,
+KCL00009,Coping and Management,"Dental anesthesia administration
+Local anesthesia administration
+Pain during local anesthesia administration",3,,KC000270;KC000511,merge_all,Anesthesia,split,(Noun) Pain during NS administration NOT equal to (Verb) Act of NS administration,merge_all,Anesthesia,,,
+KCL00017,Coping and Management,"Local anesthesia
+Local anesthesia use
+Use of local anesthesia",3,,KC000107;KC000158,merge_all,Local anesthesia,merge_all,Local anesthesia,merge_all,Local anesthesia,,,
+KCL00015,Coping and Management,"Ibuprofen use
+Ibuprofen use for dental pain",2,treatment,KC000326,merge_all,Ibuprofen use,merge_all,Ibuprofen use,merge_all,Ibuprofen use,,,
+KCL00024,Coping and Management,"Root canal treatment
+Root canal treatment pain",2,treatment,KC000116,merge_all,Root canal treatment,merge_all,Root canal treatment,merge_all,Root canal treatment,,,
+KCL00018,Coping and Management,"Loxoprofen use
+Use of loxoprofen",2,,KC000049,merge_all,Loxoprofen use,merge_all,Loxoprofen use,merge_all,Loxoprofen use,,,
+KCL00025,Coping and Management,"Temperature-based pain relief
+Temperature-based pain relief and mouth rinsing",2,,KC000573,do_not_merge,,merge_all,Temperature-based pain relief,split,"Temperature-based pain relief;
+Mouth rinsing. Separate labels",,,
+KCL00002,Coping and Management,"Analgesic and antibiotic use
+Antibiotic and analgesic use",2,treatment,KC000010,merge_all,Analgesic and antibiotic use,merge_all,Antibiotic and analgesic use,merge_all,Analgesic and antibiotic use,,,
+KCL00011,Coping and Management,"Dietary modification for pain management
+Dietary modification to manage pain",2,consequence,KC000467,merge_all,Dietary modification to manage pain,merge_all,Dietary modification,merge_all,Dietary modification to manage pain,,,
+KCL00022,Coping and Management,"Oral and topical analgesic use
+Topical analgesic use",2,treatment,KC000440,merge_all,Analgesic use,merge_all,analgesic use,merge_all,Analgesic use,,,
+KCL00028,Emotional Expression,"Anxiety and helplessness
+Anxiety or helplessness
+Distress and helplessness
+Distress or helplessness
+Fear and helplessness
+Frustration and helplessness
+Frustration or helplessness
+Frustration or helplessness due to pain
+Helplessness
+Helplessness and anxiety
+Helplessness and distress
+Helplessness and frustration
+Helplessness due to dental pain
+Helplessness or anxiety
+Helplessness or distress
+Helplessness or frustration
+Helplessness/Anxiety",17,,KC000725;KC000741;KC000742;KC000881;KC000913;KC000999;KC001000;KC001025;KC001029;KC001030;KC001074;KC001075;KC001130;KC001131;KC001141;KC001154;KC001155;KC001192;KC001193,split,"Helplessness = Helplessness + Helplessness due to dental pain
+Anxiety = Anxiety and helplessness + Anxiety or helplessness + Helplessness and anxiety + Helplessness or anxiety + Helplessness/Anxiety
+Distress = Distress and helplessness + Distress or helplessness + Helplessness and distress + Helplessness or distress
+Fear = Fear and helplessness
+Frustration = Frustration and helplessness + Frustration or helplessness + Frustration or helplessness due to pain + Helplessness and frustration + Helplessness or frustration",merge_all,Helplessness,split,"Helplessness = Helplessness + Helplessness due to dental pain
+Anxiety = Anxiety and helplessness + Anxiety or helplessness + Helplessness and anxiety + Helplessness or anxiety + Helplessness/Anxiety
+Distress = Distress and helplessness + Distress or helplessness + Helplessness and distress + Helplessness or distress
+Fear = Fear and helplessness
+Frustration = Frustration and helplessness + Frustration or helplessness + Frustration or helplessness due to pain + Helplessness and frustration + Helplessness or frustration",,,"Anxiety
+Distress
+Fear
+Frustration"
+KCL00043,Emotional Expression,"Emotional distress
+Emotional distress due to dental pain
+Emotional distress due to pain
+Emotional distress due to severe pain
+Emotional distress related to dental pain
+Severe emotional distress
+Severe emotional distress due to dental pain
+Severe emotional distress due to pain",8,severity,KC000697;KC000897;KC000919;KC000920;KC001038;KC001077;KC001159,merge_all,Emotional distress,merge_all,Emotional distress,merge_all,Emotional distress,,,
+KCL00030,Emotional Expression,"Avoidance of dental care
+Avoidance of dental care due to fear
+Dental avoidance
+Dental care avoidance
+Dental care avoidance and distress
+Dental care avoidance anxiety
+Dental care avoidance due to fear
+Dental care avoidance or fear",8,,KC000630;KC000860;KC000935;KC000942;KC000961;KC000965;KC000989,merge_all,Dental care avoidance,merge_all,Dental avoidance,merge_all,Dental care avoidance,,,
+KCL00039,Emotional Expression,"Distress
+Distress due to dental pain
+Distress due to pain
+Pain and distress
+Pain distress
+Pain-related distress",6,,KC000683;KC000684;KC000685;KC000760;KC000762;KC001008;KC001088,merge_all,Distress,merge_all,Distress,merge_all,Distress,,,
+KCL00027,Emotional Expression,"Anger and frustration
+Anger and frustration due to pain
+Anger or frustration
+Frustration and anger
+Frustration or anger",5,,KC000601;KC000602;KC000603;KC000604;KC000605;KC000717;KC001001;KC001002,merge_all,Anger and frustration,merge_all,Anger and frustration,merge_all,Anger and frustration,,,
+KCL00036,Emotional Expression,"Dental treatment fear
+Fear of dental pain and treatment
+Fear of dental pain or treatment
+Fear of dental treatment
+Fear of dental treatment pain",5,,KC000657;KC000836;KC000874;KC000921,merge_all,Dental fear,merge_all,Fear of dental treatment,merge_all,Dental fear,,,
+KCL00045,Emotional Expression,"Extreme distress or suffering
+Extreme suffering
+Extreme suffering due to dental pain
+Extreme suffering due to pain
+Extreme suffering from dental pain",5,severity,KC000887;KC000941;KC001012;KC001100,merge_all,Extreme suffering,merge_all,Suffering,merge_all,Extreme suffering,,,
+KCL00044,Emotional Expression,"Extreme distress
+Extreme distress due to pain
+Extreme fear or distress
+Extreme pain distress",4,severity,KC000826;KC000923;KC000993,merge_all,Extreme distress,merge_all,Distress,merge_all,Extreme distress,,,
+KCL00041,Emotional Expression,"Distress due to severe pain
+Severe dental pain distress
+Severe distress
+Severe pain distress",4,severity,KC000686;KC000841;KC000936;KC001064;KC001098,merge_all,Distress,merge_all,Distress,merge_all,Distress,,,
+KCL00040,Emotional Expression,"Distress and frustration
+Distress or frustration
+Frustration and distress
+Frustration or distress",4,,KC000676;KC000677;KC000687;KC000688;KC000724,merge_all,Distress and frustration,merge_all,Distress,merge_all,Distress and frustration,,,
+KCL00055,Emotional Expression,"Relief or resignation
+Resignation
+Resignation or distress
+Resignation to pain",4,,KC000866;KC001147;KC001165,merge_all,Resignation,merge_all,Resignation,merge_all,Resignation,,,
+KCL00033,Emotional Expression,"Confusion and frustration
+Confusion or frustration
+Frustration and confusion
+Frustration or confusion",4,,KC000636;KC000637;KC000638;KC000643;KC000644,merge_all,Confusion and frustration,merge_all,Confusion or frustration,merge_all,Confusion and frustration,,,
+KCL00042,Emotional Expression,"Embarrassment
+Embarrassment or frustration
+Frustration or embarrassment
+Regret or embarrassment",4,,KC000995;KC000996;KC001063,merge_all,Embarrassment,merge_all,Embarrassment or frustration,merge_all,Embarrassment,,,
+KCL00052,Emotional Expression,"Gratitude
+Gratitude and relief
+Relief and gratitude
+Relief or gratitude",4,,KC001086;KC001149;KC001150,merge_all,Relief,merge_all,Gratitude,merge_all,Relief,,,
+KCL00053,Emotional Expression,"Hope for pain relief
+Hope for relief
+Hope for relief from pain
+Relief or hope",4,,KC000835;KC001019;KC001094,merge_all,Relief,merge_all,Hope for pain relief,merge_all,Relief,,,
+KCL00029,Emotional Expression,"Anxiety or fear
+Fear and anxiety
+Fear or anxiety",3,,KC000621;KC000622;KC000705,merge_all,Anxiety or fear,merge_all,Fear and anxiety,merge_all,Anxiety or fear,,,
+KCL00049,Emotional Expression,"Frustration and hope for recovery
+Hope for recovery
+Relief or hope for recovery",3,,KC000946;KC001050,merge_all,Hope for recovery,merge_all,Hope for recovery,merge_all,Hope for recovery,,,
+KCL00057,Emotional Expression,"Suicidal ideation
+Suicidal ideation related to pain
+Suicidal ideation related to stress",3,,KC000861;KC001066,do_not_merge,,merge_all,Suicidal ideation,merge_all,Suicidal ideation,,,
+KCL00034,Emotional Expression,"Crying
+Crying due to pain
+Distress and crying due to pain",3,,KC001060;KC001146,merge_all,Crying,merge_all,Crying,merge_all,Crying,,,
+KCL00032,Emotional Expression,"Confusion and distress
+Confusion or distress
+Distress and confusion",3,,KC000634;KC000635,merge_all,Confusion and distress,merge_all,Confusion,merge_all,Confusion,,,
+KCL00051,Emotional Expression,"Frustration and resignation
+Frustration or resignation
+Resignation or frustration",3,,KC000734;KC000744,merge_all,Frustration and resignation,merge_all,Frustration,merge_all,Frustration,,,
+KCL00038,Emotional Expression,"Disbelief or shock
+Shock and disbelief
+Shock or disbelief",3,,KC000672;KC000788,merge_all,Shock and disbelief,merge_all,Disbelief or shock,merge_all,Shock and disbelief,,,
+KCL00031,Emotional Expression,"Confusion
+Fear and confusion",2,,KC001073,merge_all,Confusion,merge_all,Fear,merge_all,Confusion,,,
+KCL00056,Emotional Expression,"Sadness
+Sadness due to pain",2,,KC001092,merge_all,Sadness,merge_all,Sadness,merge_all,Sadness,,,
+KCL00037,Emotional Expression,"Despair
+Despair due to pain",2,,KC001107,merge_all,Despair,merge_all,despair,merge_all,Despair,,,
+KCL00048,Emotional Expression,"Fear of dental visits
+Fear of dental visits due to pain",2,,KC000928,merge_all,Fear of dental visits,merge_all,Fear,merge_all,Fear of dental visits,,,
+KCL00035,Emotional Expression,"Dental fear
+Fear of dental pain",2,,KC001181,merge_all,Dental fear,merge_all,Fear,merge_all,Dental fear,,,
+KCL00047,Emotional Expression,"Fear of dental visit
+Fear of dental visit due to pain",2,treatment,KC000971,merge_all,Fear of dental visit,merge_all,Fear,merge_all,Fear of dental visit,,,
+KCL00054,Emotional Expression,"Relief and satisfaction
+Relief or satisfaction",2,,KC000775,merge_all,Relief,merge_all,Relief,merge_all,Relief,,,
+KCL00046,Emotional Expression,"Fear and pain
+Fear of pain",2,,KC000707,merge_all,Fear of pain,merge_all,Fear,merge_all,Fear of pain,,,
+KCL00050,Emotional Expression,"Frustration and hopelessness
+Hopelessness",2,,KC001087,merge_all,Hopelessness,merge_all,Hopelessness,merge_all,Hopelessness,,,
+KCL00059,Perceived Cause,"Bruxism or clenching
+Bruxism or clenching as cause
+Bruxism or clenching as cause of pain
+Bruxism or tooth clenching
+Bruxism or tooth clenching as cause
+Bruxism or tooth clenching as cause of pain
+Bruxism or tooth clenching causing pain
+Bruxism or tooth clenching due to pain
+Bruxism or tooth clenching suspected",9,body_site;cause_trigger;uncertainty,KC001323;KC001344;KC001405;KC001439;KC001508;KC001530;KC001653;KC001746,merge_all,Bruxism or clenching,merge_all,Bruxism,merge_all,Bruxism or clenching,,,
+KCL00061,Perceived Cause,"Delayed orthodontic adjustment
+Orthodontic adjustment
+Orthodontic adjustment as cause of pain
+Orthodontic adjustment as pain trigger
+Orthodontic adjustment causing pain
+Orthodontic adjustment force
+Orthodontic adjustment pain
+Orthodontic wire adjustment
+Orthodontic wire adjustment pain",9,,KC001245;KC001366;KC001442;KC001512;KC001532;KC001548;KC001591;KC001764,merge_all,Orthodontic adjustment,merge_all,Orthodontic adjustment,merge_all,Orthodontic adjustment,,,
+KCL00062,Perceived Cause,"Dental caries and periodontal disease
+Fear of periodontal disease
+Periodontal disease
+Periodontal disease as cause
+Periodontal disease as cause of pain
+Periodontal disease causing pain
+Severe periodontal disease
+Suspected periodontal disease",8,cause_trigger;severity;uncertainty,KC001319;KC001385;KC001467;KC001492;KC001614;KC001765;KC001778,merge_all,Periodontal disease,merge_all,Periodontal disease,merge_all,Periodontal disease,,,
+KCL00069,Perceived Cause,"Orthodontic treatment
+Orthodontic treatment as cause
+Orthodontic treatment as cause of pain
+Orthodontic treatment as pain cause
+Orthodontic treatment as pain trigger
+Orthodontic treatment as trigger
+Orthodontic treatment pain",7,,KC001255;KC001352;KC001417;KC001455;KC001604;KC001688,merge_all,Orthodontic treatment,merge_all,Orthodontic treatment,merge_all,Orthodontic treatment,,,
+KCL00058,Perceived Cause,"Barometric pressure change
+Barometric pressure change as cause
+Barometric pressure change as cause of dental pain
+Barometric pressure change as pain trigger
+Barometric pressure change as perceived cause
+Barometric pressure change as trigger
+Barometric pressure change as trigger for dental pain",7,,KC001265;KC001380;KC001383;KC001411;KC001499;KC001565,merge_all,Barometric pressure change,merge_all,Barometric pressure change,merge_all,Barometric pressure change,,,
+KCL00079,Perceived Cause,"Wisdom tooth
+Wisdom tooth as cause
+Wisdom tooth as cause of pain
+Wisdom tooth pain
+Wisdom tooth-related condition
+Wisdom tooth-related pain",6,body_site;cause_trigger,KC001233;KC001364;KC001386;KC001723;KC001740,merge_all,Wisdom tooth,merge_all,Wisdom tooth-related pain,merge_all,Wisdom tooth,,,
+KCL00063,Perceived Cause,"Dental hypersensitivity
+Dentin hypersensitivity
+Dentin hypersensitivity and bruxism
+Dentin hypersensitivity due to bruxism
+Dentin hypersensitivity suspected",5,cause_trigger;uncertainty,KC001504;KC001509;KC001588;KC001615,merge_all,Dentin hypersensitivity,merge_all,Dental hypersensitivity,merge_all,Dentin hypersensitivity,,,
+KCL00070,Perceived Cause,"Post-dental treatment pain
+Post-treatment dental pain
+Post-treatment pain
+Post-treatment tooth
+Post-treatment tooth pain",5,body_site,KC001215;KC001340;KC001505;KC001649,merge_all,Post-treatment pain,merge_all,Post-treatment pain,merge_all,Post-treatment pain,,,
+KCL00065,Perceived Cause,"Eruption of wisdom tooth
+Wisdom tooth eruption
+Wisdom tooth eruption as cause
+Wisdom tooth eruption pain",4,body_site;cause_trigger,KC001210;KC001263;KC001382,merge_all,Wisdom tooth eruption,merge_all,Wisdom tooth eruption,merge_all,Wisdom tooth eruption,,,
+KCL00076,Perceived Cause,"Structural tooth damage
+Structural tooth damage causing trauma
+Structural tooth damage due to trauma
+Structural tooth damage from trauma",4,body_site;cause_trigger,KC001575;KC001633;KC001696,merge_all,Structural tooth damage,split,description of tooth damange NOT equal to Trauma about the damage,merge_all,Structural tooth damage,,,
+KCL00073,Perceived Cause,"Sinusitis
+Sinusitis as cause of dental pain
+Sinusitis as cause of pain
+Sinusitis as perceived cause of dental pain",4,,KC001350;KC001670;KC001775,merge_all,Sinusitis,merge_all,Sinusitis,merge_all,Sinusitis,,,
+KCL00074,Perceived Cause,"Stress as perceived cause
+Stress as perceived cause of dental pain
+Stress as perceived cause of jaw pain
+Stress as perceived cause of pain",4,body_site,KC001324;KC001480;KC001782,merge_all,Stress as perceived cause,merge_all,Stress,merge_all,Stress as perceived cause,,,
+KCL00060,Perceived Cause,"Caries
+Dental caries
+Dental caries as pain cause",3,cause_trigger,KC001563;KC001732,merge_all,Dental caries,merge_all,Caries,merge_all,Dental caries,,,
+KCL00067,Perceived Cause,"Lost dental filling
+Lost dental filling as cause
+Lost filling",3,,KC001354;KC001369,merge_all,Lost filling,merge_all,Lost filling,merge_all,Lost filling,,,
+KCL00071,Perceived Cause,"Post-treatment condition
+Post-treatment dental condition
+Post-treatment tooth condition",3,body_site,KC001282;KC001291,merge_all,Post-treatment condition,merge_all,Post-treatment condition,merge_all,Post-treatment condition,,,
+KCL00078,Perceived Cause,"Unknown cause
+Unknown cause of dental pain
+Unknown cause of pain",3,uncertainty,KC001320;KC001427,merge_all,Unknown cause,merge_all,Unknown cause,merge_all,Unknown cause,,,
+KCL00072,Perceived Cause,"Pulp necrosis
+Pulp necrosis as cause
+Suspected pulp necrosis",3,uncertainty,KC001347;KC001757,merge_all,Pulp necrosis,merge_all,Pulp necrosis,merge_all,Pulp necrosis,,,
+KCL00064,Perceived Cause,"Dietary trigger
+Dietary trigger for dental pain
+Dietary trigger of dental pain",3,consequence,KC001462;KC001637,merge_all,Dietary trigger,merge_all,Dietary trigger,merge_all,Dietary trigger,,,
+KCL00066,Perceived Cause,"Internal heat attribution
+Misattribution to internal heat",2,cause_trigger,KC001791,merge_all,Internal heat attribution,split,Attribution != Misattribution,merge_all,Internal heat attribution,,,
+KCL00068,Perceived Cause,"Malocclusion
+Malocclusion as cause of pain",2,,KC001460,merge_all,Malocclusion,merge_all,Malocclusion,merge_all,Malocclusion,,,
+KCL00080,Perceived Cause,"Wisdom tooth extraction
+Wisdom tooth extraction pain",2,body_site;cause_trigger;treatment,KC001268,merge_all,Wisdom tooth extraction,merge_all,Wisdom tooth,merge_all,Wisdom tooth extraction,,,
+KCL00075,Perceived Cause,"Stress-induced bruxism
+Stress-induced bruxism or clenching",2,cause_trigger,KC001772,merge_all,Stress-induced bruxism,merge_all,Stress-induced bruxism,merge_all,Stress-induced bruxism,,,
+KCL00077,Perceived Cause,"Suspected wisdom tooth involvement
+Wisdom tooth involvement",2,body_site;cause_trigger;uncertainty,KC001639,merge_all,Wisdom tooth involvement,merge_all,Wisdom tooth,merge_all,Wisdom tooth involvement,,,
+KCL00081,Perceived Cause,"Wisdom tooth inflammation
+Wisdom tooth-related inflammation",2,body_site;cause_trigger,KC001232,merge_all,Wisdom tooth inflammation,merge_all,Wisdom tooth inflammation,merge_all,Wisdom tooth inflammation,,,
+KCL00096,Perceived Consequences,"Severe sleep disturbance
+Sleep and eating disturbance
+Sleep disturbance
+Sleep disturbance due to dental pain
+Sleep disturbance due to fear of pain
+Sleep disturbance due to pain
+Sleep disturbance due to pain relief
+Sleep disturbance or rest due to pain
+Sleep disturbance relief",9,consequence;severity,KC001922;KC001977;KC002107;KC002123;KC002214;KC002216;KC002250;KC002270;KC002316;KC002330;KC002365;KC002397;KC002399,merge_all,Sleep disturbance,merge_all,Sleep disturbance,merge_all,Sleep disturbance,,,
+KCL00085,Perceived Consequences,"Dietary restriction
+Dietary restriction and pain burden
+Dietary restriction due to dental condition
+Dietary restriction due to dental pain
+Dietary restriction due to dental treatment
+Dietary restriction due to fear of pain
+Dietary restriction due to pain",7,consequence,KC001898;KC001945;KC002068;KC002076;KC002202;KC002222;KC002236;KC002238;KC002259;KC002325,merge_all,Dietary restriction,merge_all,Dietary restriction,merge_all,Dietary restriction,,,
+KCL00088,Perceived Consequences,"Eating impairment
+Eating impairment due to dental pain
+Eating impairment due to pain
+Eating impairment due to pain fear
+Eating impairment due to severe dental pain
+Fear of eating impairment",6,consequence;severity,KC002018;KC002074;KC002235;KC002311;KC002341;KC002391,merge_all,Eating impairment,merge_all,Eating impairment,merge_all,Eating impairment,,,
+KCL00089,Perceived Consequences,"Emotional distress
+Emotional distress due to dental pain
+Emotional distress due to pain
+Emotional distress due to pain duration
+Severe emotional distress
+Severe emotional distress due to pain",6,severity,KC001929;KC001980;KC002143;KC002198;KC002242;KC002336;KC002392,merge_all,Emotional distress,merge_all,Emotional distress,merge_all,Emotional distress,,,
+KCL00091,Perceived Consequences,"Functional impairment
+Functional impairment and stress due to dental pain
+Functional impairment due to dental pain
+Functional impairment due to pain
+Severe functional impairment due to pain",5,consequence;severity,KC001943;KC002000;KC002164;KC002245;KC002387,merge_all,Functional impairment,merge_all,Functional impairment,merge_all,Functional impairment,,,
+KCL00101,Perceived Consequences,"Work and life disruption due to dental pain
+Work disruption
+Work disruption due to dental pain
+Work disruption due to pain
+Work/Life disruption due to dental pain",5,consequence,KC001995;KC002051;KC002163;KC002281;KC002319,merge_all,Work disruption,merge_all,Work disruption,merge_all,Work disruption,,,
+KCL00086,Perceived Consequences,"Difficulty eating
+Difficulty eating due to dental pain
+Difficulty eating due to pain
+Eating difficulty
+Eating difficulty due to dental pain",5,consequence,KC001811;KC001812;KC001915;KC001916;KC001968;KC001969;KC002115;KC002116;KC002117,merge_all,Difficulty eating,merge_all,Eating difficulty,merge_all,Difficulty eating,,,
+KCL00094,Perceived Consequences,"Insomnia
+Insomnia due to dental care delay
+Insomnia due to dental condition
+Insomnia due to dental pain
+Insomnia due to pain",5,,KC001951;KC002084;KC002363;KC002374,merge_all,Insomnia,merge_all,Insomnia,merge_all,Insomnia,,,
+KCL00097,Perceived Consequences,"Severe suffering
+Severe suffering and pain
+Severe suffering due to pain
+Severe suffering duration
+Severe suffering from pain",5,severity,KC001919;KC001981;KC002167;KC002381,merge_all,Severe suffering,merge_all,Severe suffering,merge_all,Severe suffering,,,
+KCL00092,Perceived Consequences,"Functional limitation
+Functional limitation due to dental pain
+Functional limitation due to pain
+Functional limitation in eating",4,consequence,KC001888;KC001930;KC002054;KC002095;KC002212,merge_all,Functional limitation,merge_all,Functional limitation,merge_all,Functional limitation,,,
+KCL00099,Perceived Consequences,"Suicidal ideation
+Suicidal ideation due to pain
+Suicidal ideation related to pain",3,,KC001839;KC002252,merge_all,Suicidal ideation,merge_all,Suicidal ideation,merge_all,Suicidal ideation,,,
+KCL00100,Perceived Consequences,"Work absence burden
+Work absence due to dental pain
+Work absence due to pain",3,consequence,KC002008;KC002372,merge_all,Work absence,merge_all,Work disruption,merge_all,Work absence,,,
+KCL00090,Perceived Consequences,"Financial burden
+Financial burden of dental care
+Financial burden of dental pain",3,,KC002129;KC002371,merge_all,Financial burden,merge_all,Financial burden,merge_all,Financial burden,,,
+KCL00093,Perceived Consequences,"Inability to eat
+Inability to eat due to dental pain
+Inability to eat due to pain",3,,KC001965;KC002219,merge_all,Inability to eat,merge_all,Inability to eat,merge_all,Inability to eat,,,
+KCL00098,Perceived Consequences,"Sleep impairment
+Sleep impairment due to dental pain
+Sleep impairment due to pain",3,consequence,KC002004;KC002060;KC002308,merge_all,Sleep impairment,merge_all,Sleep impairment,merge_all,Sleep impairment,,,
+KCL00102,Perceived Consequences,"Work impairment
+Work impairment due to dental pain
+Work impairment due to pain",3,consequence,KC002031;KC002083;KC002366,merge_all,Work impairment,merge_all,Work disruption,merge_all,Work impairment,,,
+KCL00082,Perceived Consequences,"Access barrier
+Access barrier to dental care
+Dental care access barrier",3,,KC001801;KC002382,merge_all,Access barrier,merge_all,Access barrier,merge_all,Access barrier,,,
+KCL00095,Perceived Consequences,"Loss of appetite
+Loss of appetite due to dental pain
+Loss of appetite due to pain",3,,KC001911;KC002105,merge_all,Loss of appetite,merge_all,Loss of appetite,merge_all,Loss of appetite,,,
+KCL00083,Perceived Consequences,"Burden of pain
+Pain burden",2,,KC001805,merge_all,Pain burden,merge_all,Pain burden,merge_all,Pain burden,,,
+KCL00084,Perceived Consequences,"Cognitive impairment due to dental pain
+Cognitive impairment due to pain",2,consequence,KC001923,merge_all,Cognitive impairment,merge_all,Cognitive impairment,merge_all,Cognitive impairment,,,
+KCL00087,Perceived Consequences,"Dysphagia due to dental pain
+Dysphagia due to pain",2,,KC001921,merge_all,Dysphagia due to pain,merge_all,Dysphagia,merge_all,Dysphagia due to pain,,,
+KCL00108,Symptom Description,"Dental pain (sensitivity)
+Dental pain and sensitivity
+Dental pain with sensitivity
+Dental sensitivity and pain
+Dental sensitivity or pain",5,,KC002439;KC002472;KC002473;KC002474,merge_all,Dental pain and sensitivity,merge_all,Dental pain and sensitivity,merge_all,Dental pain and sensitivity,,,
+KCL00112,Symptom Description,"Dental pain and sleep disturbance
+Severe sleep disturbance due to dental pain
+Sleep disturbance due to dental pain
+Sleep disturbance due to pain",4,consequence;severity,KC002475;KC002752;KC002978,merge_all,Sleep disturbance due to pain,merge_all,Sleep disturbance,merge_all,Sleep disturbance due to pain,,,
+KCL00141,Symptom Description,"Sudden onset dental pain
+Sudden onset of dental pain
+Sudden onset of pain
+Sudden-onset dental pain",4,temporality,KC002654;KC002655;KC002656;KC002882,merge_all,Sudden onset of pain,merge_all,Sudden onset dental pain,merge_all,Sudden onset of pain,,,
+KCL00142,Symptom Description,"Thermal sensitivity
+Thermal sensitivity and pain
+Thermal sensitivity dental pain
+Thermal sensitivity pain",4,,KC002696;KC002861;KC002922,merge_all,Thermal sensitivity,merge_all,Thermal sensitivity,merge_all,Thermal sensitivity,,,
+KCL00105,Symptom Description,"Dental and jaw pain
+Dental or jaw pain
+Dental pain and jaw pain
+Jaw and dental pain",4,body_site,KC002420;KC002421;KC002422,merge_all,Dental and jaw pain,merge_all,Dental and jaw pain,merge_all,Dental and jaw pain,,,
+KCL00109,Symptom Description,"Dental pain after anesthesia wears off
+Pain after anesthesia wears off
+Severe dental pain after anesthesia wears off
+Severe pain after anesthesia wears off",4,severity,KC002743;KC002760;KC002993,merge_all,Pain after anesthesia wears off,merge_all,Dental pain after anesthesia wears off,merge_all,Pain after anesthesia wears off,,,
+KCL00130,Symptom Description,"Pain during anesthesia administration
+Pain during dental anesthesia administration
+Severe pain during anesthesia administration
+Severe pain during dental anesthesia administration",4,severity,KC002709;KC002837;KC002973,merge_all,Pain during anesthesia administration,merge_all,Pain during anesthesia administration,merge_all,Pain during anesthesia administration,,,
+KCL00117,Symptom Description,"Dental pain post-extraction
+Post-extraction dental pain
+Post-extraction pain",3,cause_trigger;treatment,KC002502;KC002943;KC002944,merge_all,Post-extraction pain,merge_all,Post-extraction pain,merge_all,Post-extraction pain,,,
+KCL00131,Symptom Description,"Pain in wisdom tooth
+Wisdom tooth pain
+Wisdom tooth-related pain",3,body_site;cause_trigger,KC002591;KC002686,merge_all,Wisdom tooth pain,merge_all,Wisdom tooth-related pain,merge_all,Wisdom tooth pain,,,
+KCL00107,Symptom Description,"Dental hypersensitivity
+Dental hypersensitivity and pain
+Dental hypersensitivity pain",3,,KC002694;KC002836,merge_all,Dental hypersensitivity,merge_all,Dental hypersensitivity,merge_all,Dental hypersensitivity,,,
+KCL00136,Symptom Description,"Severe dental pain during treatment
+Severe pain during dental treatment
+Severe pain during treatment",3,severity,KC002635;KC002928,merge_all,Severe pain during treatment,merge_all,Severe pain during treatment,merge_all,Severe pain during treatment,,,
+KCL00118,Symptom Description,"Dental pain referred to head
+Referred pain to head
+Referred pain to the head",3,body_site,KC002616;KC002941,merge_all,Referred pain to head,merge_all,Referred pain to head,merge_all,Referred pain to head,,,
+KCL00111,Symptom Description,"Dental pain and headache
+Dental pain with headache
+Headache and dental pain",3,,KC002462;KC002463;KC002512,merge_all,Dental pain and headache,merge_all,Dental pain with headache,merge_all,Dental pain and headache,,,
+KCL00145,Symptom Description,"Uncertain dental pain location
+Uncertain location of dental pain
+Uncertain pain location",3,,KC002801;KC002994,merge_all,Uncertain pain location,merge_all,Uncertain pain location,merge_all,Uncertain pain location,,,
+KCL00106,Symptom Description,"Dental discomfort
+Dental pain and discomfort
+Discomfort",3,,KC002915;KC002937,merge_all,Dental discomfort,merge_all,Discomfort,merge_all,Dental discomfort,,,
+KCL00125,Symptom Description,"Gingival inflammation
+Gingival inflammation and pain
+Gingival pain and inflammation",3,body_site,KC002858;KC002859,merge_all,Gingival inflammation,merge_all,Gingival inflammation,merge_all,Gingival inflammation,,,
+KCL00110,Symptom Description,"Dental pain and dysphagia
+Dysphagia and dental pain
+Dysphagia due to dental pain",3,,KC002448;KC002531,merge_all,Dental pain and dysphagia,merge_all,Dysphagia and dental pain,merge_all,Dental pain and dysphagia,,,
+KCL00115,Symptom Description,"Dental pain improvement
+Improvement in dental pain
+Pain improvement",3,,KC002496;KC002883,merge_all,Pain improvement,merge_all,Pain improvement,merge_all,Pain improvement,,,
+KCL00119,Symptom Description,"Dental pain resolution
+Resolution of dental pain
+Resolution of pain",3,,KC002506;KC002927,merge_all,Resolution of pain,merge_all,Pain resolution,merge_all,Resolution of pain,,,
+KCL00134,Symptom Description,"Persistent severe dental pain
+Severe and persistent dental pain
+Severe persistent dental pain",3,severity;temporality,KC002599;KC002600,merge_all,Persistent severe dental pain,merge_all,Severe and persistent dental pain,merge_all,Persistent severe dental pain,,,
+KCL00147,Symptom Description,"Worsening dental pain
+Worsening of dental pain",2,,KC002687,merge_all,Worsening dental pain,merge_all,Worsening dental pain,merge_all,Worsening dental pain,,,
+KCL00114,Symptom Description,"Dental pain during treatment
+Pain during dental treatment",2,,KC002493,merge_all,Dental pain during treatment,merge_all,Pain during dental treatment,merge_all,Dental pain during treatment,,,
+KCL00143,Symptom Description,"Throbbing dental pain
+Throbbing pain",2,,KC002995,merge_all,Throbbing pain,merge_all,Throbbing pain,merge_all,Throbbing pain,,,
+KCL00137,Symptom Description,"Severe dental pain post-extraction
+Severe post-extraction pain",2,cause_trigger;severity;treatment,KC002885,merge_all,Severe post-extraction pain,merge_all,Severe post-extraction pain,merge_all,Severe post-extraction pain,,,
+KCL00139,Symptom Description,"Severe pain in wisdom tooth
+Severe wisdom tooth pain",2,body_site;cause_trigger;severity,KC002647,merge_all,Severe wisdom tooth pain,merge_all,Severe pain in wisdom tooth,merge_all,Severe wisdom tooth pain,,,
+KCL00138,Symptom Description,"Severe dental pain preventing sleep
+Severe pain preventing sleep",2,consequence;severity,KC002791,merge_all,Severe pain preventing sleep,merge_all,Severe dental pain preventing sleep,merge_all,Severe pain preventing sleep,,,
+KCL00144,Symptom Description,"Tooth mobility
+Tooth mobility and pain",2,body_site,KC002972,merge_all,Tooth mobility,merge_all,Tooth mobility,merge_all,Tooth mobility,,,
+KCL00128,Symptom Description,"Intermittent dental pain
+Intermittent pain",2,temporality,KC002854,merge_all,Intermittent pain,merge_all,Intermittent pain,merge_all,Intermittent pain,,,
+KCL00135,Symptom Description,"Post-treatment dental pain
+Post-treatment pain",2,,KC002870,merge_all,Post-treatment pain,merge_all,Post-treatment pain,merge_all,Post-treatment pain,,,
+KCL00116,Symptom Description,"Dental pain onset
+Onset of dental pain",2,,KC002500,merge_all,Dental pain onset,merge_all,Dental pain onset,merge_all,Dental pain onset,,,
+KCL00126,Symptom Description,"Gingival pain and swelling
+Gingival swelling and pain",2,body_site,KC002551,merge_all,Gingival pain and swelling,merge_all,Gingival pain and swelling,merge_all,Gingival pain and swelling,,,
+KCL00140,Symptom Description,"Severe sudden dental pain
+Sudden severe dental pain",2,severity;temporality,KC002649,merge_all,Severe sudden dental pain,merge_all,Severe sudden dental pain,merge_all,Severe sudden dental pain,,,
+KCL00127,Symptom Description,"Insomnia due to dental pain
+Insomnia due to pain",2,,KC002782,merge_all,Insomnia due to pain,merge_all,Insomnia,merge_all,Insomnia due to pain,,,
+KCL00121,Symptom Description,"Dentin hypersensitivity
+Dentin hypersensitivity pain",2,,KC002692,merge_all,Dentin hypersensitivity,merge_all,Dental hypersensitivity,merge_all,Dentin hypersensitivity,,,
+KCL00103,Symptom Description,"Anticipated dental pain
+Anticipated pain",2,,KC002866,merge_all,Anticipated pain,merge_all,Anticipated pain,merge_all,Anticipated pain,,,
+KCL00124,Symptom Description,"Generalized dental pain
+Generalized pain",2,,KC002813,merge_all,Generalized pain,merge_all,Generalized pain,merge_all,Generalized pain,,,
+KCL00123,Symptom Description,"Extreme dental pain
+Extreme pain",2,severity,KC002996,merge_all,Extreme pain,merge_all,Extreme pain,merge_all,Extreme pain,,,
+KCL00129,Symptom Description,"Oral bleeding
+Oral bleeding pain",2,,KC002708,merge_all,Oral bleeding,merge_all,Oral bleeding,merge_all,Oral bleeding,,,
+KCL00133,Symptom Description,"Persistent dull dental pain
+Persistent dull pain",2,temporality,KC002945,merge_all,Persistent dull pain,merge_all,Persistent pain,merge_all,Persistent dull pain,,,
+KCL00120,Symptom Description,"Dental pain triggered by eating
+Pain triggered by eating",2,consequence,KC002920,merge_all,Pain triggered by eating,merge_all,Pain triggered by eating,merge_all,Pain triggered by eating,,,
+KCL00104,Symptom Description,"Bruxism or tooth clenching
+Severe bruxism or tooth clenching",2,,KC002977,merge_all,Bruxism or clenching,merge_all,Bruxism,merge_all,Bruxism or clenching,,,
+KCL00113,Symptom Description,"Dental pain duration
+Duration of dental pain",2,,KC002488,merge_all,Dental pain duration,merge_all,Pain duration,merge_all,Dental pain duration,,,
+KCL00122,Symptom Description,"Excessive salivation
+Excessive salivation due to pain",2,,KC002886,merge_all,Excessive salivation,merge_all,Excessive salivation,merge_all,Excessive salivation,,,
+KCL00132,Symptom Description,"Persistent dental pain after treatment
+Persistent pain after treatment",2,temporality,KC002797,merge_all,Persistent pain after treatment,merge_all,Persistent pain,merge_all,Persistent pain after treatment,,,
+KCL00146,Symptom Description,"Unexplained dental pain
+Unexplained pain",2,,KC002748,merge_all,Unexplained pain,merge_all,Unexplained pain,merge_all,Unexplained pain,,,

@@ -1,0 +1,14 @@
+{
+  "created_at_utc": "2026-09-02T06:33:44.381269+00:00",
+  "out_dir": "outputs/keyword_report",
+  "outputs": [
+    "README_keyword_results.md",
+    "merged_label_statistics.xlsx",
+    "reviewed_cluster_decisions.csv",
+    "canonicalization_protocol.md",
+    "figure_dimension_distribution.png",
+    "figure_dimension_distribution.pdf",
+    "figure_keyword_heatmap.png",
+    "figure_keyword_heatmap.pdf"
+  ]
+}
