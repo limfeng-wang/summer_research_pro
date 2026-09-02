@@ -60,6 +60,7 @@ class PipelineConfig:
     """Runtime-independent hierarchy configuration."""
 
     extract_proxy_csm: bool = True
+    force_extract_all_r1_csm: bool = False
     rag_k: int = 5
 
 

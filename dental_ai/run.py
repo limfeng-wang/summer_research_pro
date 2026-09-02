@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any, Iterable, TextIO
 
@@ -394,6 +395,7 @@ def _run_hf(
     rag_k = int(stack.runtime.get("default_rag_k", 5))
     config = PipelineConfig(
         extract_proxy_csm=bool(stack.runtime.get("extract_proxy_csm", True)),
+        force_extract_all_r1_csm=os.environ.get("FORCE_EXTRACT_ALL_R1_CSM", "0") == "1",
         rag_k=rag_k,
     )
     extraction_posts: list[SourcePost] = []
@@ -789,6 +791,8 @@ def _hf_manifest_config(*, config_path: str, models_root: str) -> dict[str, Any]
 def _should_extract_csm_result(result: ExtractionResult, config: object) -> bool:
     if result.relevance_label != RelevanceLabel.R1:
         return False
+    if bool(getattr(config, "force_extract_all_r1_csm", False)):
+        return True
     if result.content_function not in {ContentFunctionLabel.C1, ContentFunctionLabel.C2}:
         return False
     if result.experiencer_label == ExperiencerLabel.E1:
