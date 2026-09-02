@@ -12,11 +12,11 @@ from pathlib import Path
 import pandas as pd
 
 
-CANONICAL_STATS = Path("outputs/keyword_report/canonicalized_keyword_statistics_full.xlsx")
-ANALYSIS_PACK = Path("outputs/keyword_report/descriptive_analysis_tables.xlsx")
+CANONICAL_STATS = Path("outputs/keyword_report/merged_label_statistics.xlsx")
+ANALYSIS_PACK = Path("outputs/keyword_report/merged_label_statistics.xlsx")
 PAPER_TABLES = Path("outputs/keyword_report/statistical_tests_and_paper_tables.xlsx")
 PAPER_DIR = Path("outputs/keyword_report")
-MAPPING = Path("outputs/keyword_report/canonical_keyword_mapping.xlsx")
+MAPPING = Path("outputs/keyword_report/merged_label_statistics.xlsx")
 OUT_DIR = Path("outputs/keyword_report")
 
 
@@ -58,7 +58,20 @@ def read_sheet(path: Path, sheet: str) -> pd.DataFrame:
     return pd.read_excel(path, sheet_name=sheet)
 
 
+def read_first_available_sheet(path: Path, sheets: list[str]) -> pd.DataFrame:
+    available = set(pd.ExcelFile(path).sheet_names)
+    for sheet in sheets:
+        if sheet in available:
+            return pd.read_excel(path, sheet_name=sheet)
+    raise ValueError(f"{path} does not contain any of these sheets: {sheets}")
+
+
 def write_processed_workbook(out_path: Path) -> None:
+    canonical_sheet = "canonical_stats_by_dimension"
+    if CANONICAL_STATS.exists():
+        canonical_sheets = pd.ExcelFile(CANONICAL_STATS).sheet_names
+        if "fine_canonical_by_dimension" in canonical_sheets:
+            canonical_sheet = "fine_canonical_by_dimension"
     sheets = {
         "README": pd.DataFrame(
             {
@@ -85,8 +98,8 @@ def write_processed_workbook(out_path: Path) -> None:
         "cross_country_enrichment": read_sheet(ANALYSIS_PACK, "cross_country_enrichment"),
         "dimension_tests": read_sheet(PAPER_TABLES, "pairwise_dimension_tests"),
         "dimension_std_residuals": read_sheet(PAPER_TABLES, "dimension_std_residuals"),
-        "canonical_stats_by_dimension": read_sheet(CANONICAL_STATS, "fine_canonical_by_dimension"),
-        "canonicalization_mapping": read_sheet(MAPPING, "canonical_mapping"),
+        "canonical_stats_by_dimension": read_sheet(CANONICAL_STATS, canonical_sheet),
+        "canonicalization_mapping": read_first_available_sheet(MAPPING, ["canonical_mapping", "canonicalization_mapping"]),
     }
     with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
         for sheet_name, table in sheets.items():
@@ -121,7 +134,7 @@ def build_markdown(out_path: Path) -> None:
     enrich = read_sheet(ANALYSIS_PACK, "cross_country_enrichment")
     pairwise = read_sheet(PAPER_TABLES, "pairwise_dimension_tests")
     residuals_long = read_sheet(PAPER_TABLES, "dimension_residuals_long")
-    mapping = read_sheet(MAPPING, "canonical_mapping")
+    mapping = read_first_available_sheet(MAPPING, ["canonical_mapping", "canonicalization_mapping"])
     manifest = json.loads((PAPER_DIR / "keyword_paper_outputs_manifest.json").read_text(encoding="utf-8"))
     global_stats = manifest["global_dimension_chi_square"]
 

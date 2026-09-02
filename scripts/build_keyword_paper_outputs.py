@@ -20,8 +20,8 @@ import seaborn as sns
 from scipy.stats import chi2_contingency
 
 
-DEFAULT_CANONICAL = Path("outputs/keyword_report/canonicalized_keyword_statistics_full.xlsx")
-DEFAULT_ANALYSIS = Path("outputs/keyword_report/descriptive_analysis_tables.xlsx")
+DEFAULT_CANONICAL = Path("outputs/keyword_report/merged_label_statistics.xlsx")
+DEFAULT_ANALYSIS = Path("outputs/keyword_report/merged_label_statistics.xlsx")
 DEFAULT_OUT_DIR = Path("outputs/keyword_report")
 
 COLORS = {
@@ -44,7 +44,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def read_fine(path: Path) -> pd.DataFrame:
-    df = pd.read_excel(path, sheet_name="fine_canonical_by_dimension")
+    sheet_names = pd.ExcelFile(path).sheet_names
+    if "fine_canonical_by_dimension" in sheet_names:
+        sheet_name = "fine_canonical_by_dimension"
+    elif "canonical_stats_by_dimension" in sheet_names:
+        sheet_name = "canonical_stats_by_dimension"
+    else:
+        raise ValueError(f"{path} does not contain a canonical keyword statistics sheet")
+    df = pd.read_excel(path, sheet_name=sheet_name)
     df["main_count"] = pd.to_numeric(df["main_count"], errors="coerce").fillna(0).astype(int)
     df["post_count"] = pd.to_numeric(df["post_count"], errors="coerce").fillna(0).astype(int)
     return df

@@ -1,4 +1,6 @@
-# Canonical Keyword Analysis
+# Canonical Keyword Analysis: Team Results Brief
+
+Generated: 2026-09-02 14:45 UTC
 
 ## Files To Review
 
@@ -24,13 +26,13 @@ Canonicalization summary:
 
 The country by CSM dimension association was statistically significant: chi-square(8) = 557.59, p = 3.05e-115, Cramer's V = 0.088. The effect is statistically clear but small overall.
 
-| dimension              | CHI_main_count | CHI_percent | JPN_main_count | JPN_percent | KOR_main_count | KOR_percent |
-| ---------------------- | -------------- | ----------- | -------------- | ----------- | -------------- | ----------- |
-| Coping and Management  | 1015           | 31.0        | 4556           | 15.6        | 449            | 13.5        |
-| Emotional Expression   | 365            | 11.2        | 4587           | 15.7        | 611            | 18.3        |
-| Perceived Cause        | 313            | 9.6         | 3217           | 11.0        | 417            | 12.5        |
-| Perceived Consequences | 350            | 10.7        | 3386           | 11.6        | 389            | 11.7        |
-| Symptom Description    | 1229           | 37.6        | 13380          | 45.9        | 1466           | 44.0        |
+| dimension | CHI_main_count | CHI_percent | JPN_main_count | JPN_percent | KOR_main_count | KOR_percent |
+| --- | --- | --- | --- | --- | --- | --- |
+| Coping and Management | 1015 | 31.0 | 4556 | 15.6 | 449 | 13.5 |
+| Emotional Expression | 365 | 11.2 | 4587 | 15.7 | 611 | 18.3 |
+| Perceived Cause | 313 | 9.6 | 3217 | 11.0 | 417 | 12.5 |
+| Perceived Consequences | 350 | 10.7 | 3386 | 11.6 | 389 | 11.7 |
+| Symptom Description | 1229 | 37.6 | 13380 | 45.9 | 1466 | 44.0 |
 
 Most notable standardized residuals:
 
@@ -43,11 +45,11 @@ Most notable standardized residuals:
 
 Pairwise dimension-profile tests:
 
-| comparison | chi_square | degrees_of_freedom | p_value   | cramers_v | n_main_units | bh_q_value |
-| ---------- | ---------- | ------------------ | --------- | --------- | ------------ | ---------- |
-| CHI_vs_JPN | 499.054    | 4                  | 1.07e-106 | 0.124     | 32398        | 3.22e-106  |
-| CHI_vs_KOR | 318.024    | 4                  | 1.40e-67  | 0.219     | 6604         | 2.10e-67   |
-| JPN_vs_KOR | 29.854     | 4                  | 5.24e-06  | 0.030     | 32458        | 5.24e-06   |
+| comparison | chi_square | degrees_of_freedom | p_value | cramers_v | n_main_units | bh_q_value |
+| --- | --- | --- | --- | --- | --- | --- |
+| CHI_vs_JPN | 499.054 | 4 | 1.07e-106 | 0.124 | 32398 | 3.22e-106 |
+| CHI_vs_KOR | 318.024 | 4 | 1.40e-67 | 0.219 | 6604 | 2.10e-67 |
+| JPN_vs_KOR | 29.854 | 4 | 5.24e-06 | 0.030 | 32458 | 5.24e-06 |
 
 ### 2. Top canonical keywords differ sharply across countries
 

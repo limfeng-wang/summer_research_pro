@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 
-DEFAULT_INPUT = Path("outputs/keyword_report/canonicalized_keyword_statistics_full.xlsx")
+DEFAULT_INPUT = Path("outputs/keyword_report/merged_label_statistics.xlsx")
 DEFAULT_OUT_DIR = Path("outputs/keyword_report")
 
 
@@ -27,7 +27,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def read_canonical(path: Path) -> pd.DataFrame:
-    df = pd.read_excel(path, sheet_name="fine_canonical_by_dimension")
+    sheet_names = pd.ExcelFile(path).sheet_names
+    if "fine_canonical_by_dimension" in sheet_names:
+        sheet_name = "fine_canonical_by_dimension"
+    elif "canonical_stats_by_dimension" in sheet_names:
+        sheet_name = "canonical_stats_by_dimension"
+    else:
+        raise ValueError(f"{path} does not contain a canonical keyword statistics sheet")
+    df = pd.read_excel(path, sheet_name=sheet_name)
     required = {"country", "dimension", "keyword", "main_count", "post_count", "rank"}
     missing = required - set(df.columns)
     if missing:

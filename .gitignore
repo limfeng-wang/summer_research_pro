@@ -17,7 +17,9 @@ venv/
 *.docx
 
 # 输出结果
-outputs/
+outputs/*
+!outputs/keyword_report/
+!outputs/keyword_report/**
 experiment_full_trace/
 experiment_traces/
 prompts_history/
