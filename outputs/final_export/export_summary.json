@@ -1,132 +1,183 @@
 {
   "annotation_phase_finalized": true,
-  "corpus_funnel_label_counts": {
+  "export_files": {
+    "full_labeled_corpus": {
+      "path": "outputs/final_export/36k_labelled.jsonl",
+      "description": "All 36,720 unique posts with final R/E/C labels; R1 rows include judged units where units were extracted and empty units where extraction returned none.",
+      "rows": 36720
+    },
+    "primary_analysis_export": {
+      "path": "outputs/final_export/r1_e1_c1c2_with_accepted_units.jsonl",
+      "description": "R1 E1 C1/C2 rows with at least one judge-accepted CSM unit.",
+      "rows": 12829
+    },
+    "summary": {
+      "path": "outputs/final_export/export_summary.json",
+      "description": "Single summary file containing all other combination counts without duplicating row-level exports."
+    }
+  },
+  "filter_pipeline_label_counts": {
     "grand_total_rows": {
       "total_rows": 36720,
       "rows_by_country": {
         "CHI": 3521,
         "JPN": 25167,
         "KOR": 8032
+      },
+      "rows_by_relevance": {
+        "R1": 20783,
+        "R0": 15935,
+        "RU": 2
       }
     },
-    "r1_e1_c1c2": {
+    "R1": {
+      "total_rows": 20783,
+      "rows_by_country": {
+        "CHI": 2932,
+        "JPN": 15637,
+        "KOR": 2214
+      },
+      "rows_by_EC": {
+        "E1|C1": 13251,
+        "E1|C2": 135,
+        "E1|C3": 709,
+        "E1|C4": 808,
+        "E1|C5": 2801,
+        "E2|C1": 487,
+        "E2|C2": 3,
+        "E2|C3": 35,
+        "E2|C4": 32,
+        "E2|C5": 79,
+        "E3|C1": 14,
+        "E3|C2": 84,
+        "E3|C3": 1702,
+        "E3|C4": 505,
+        "E3|C5": 138
+      }
+    },
+    "R1_E1_C1C2": {
       "total_rows": 13386,
       "rows_by_country": {
         "CHI": 838,
         "JPN": 11195,
         "KOR": 1353
+      },
+      "rows_by_EC": {
+        "E1|C1": 13251,
+        "E1|C2": 135
       }
     }
   },
-  "accepted_csm_exports": {
-    
-    "r1_e1_c1c2": {
-      "total_rows": 12829,
-      "rows_by_country": {
-        "CHI": 687,
-        "JPN": 10819,
-        "KOR": 1323
-      },
-      "accepted_unit_count": 35627,
-      "accepted_units_by_country": {
-        "CHI": 3940,
-        "JPN": 28480,
-        "KOR": 3207
-      },
-      "accepted_units_by_domain": {
-        "Coping and Management": 6079,
-        "Emotional Expression": 5486,
-        "Perceived Cause": 3941,
-        "Perceived Consequences": 4066,
-        "Symptom Description": 16055
-      },
-      "accepted_units_by_country_domain": {
-        "CHI": {
-          "Coping and Management": 1218,
-          "Emotional Expression": 448,
-          "Perceived Cause": 390,
-          "Perceived Consequences": 397,
-          "Symptom Description": 1487
+  "CSM_pipeline_coverage": {
+    "R1": {
+      "total_rows": 20783,
+      "rows_with_extracted_csm_units": 16075,
+      "rows_with_at_least_one_accepted_csm_unit": 15934,
+      "row_breakdown": {
+        "accepted_rows_by_country": {
+          "CHI": 1065,
+          "JPN": 13300,
+          "KOR": 1569
         },
-        "JPN": {
-          "Coping and Management": 4431,
-          "Emotional Expression": 4457,
-          "Perceived Cause": 3151,
-          "Perceived Consequences": 3294,
-          "Symptom Description": 13147
+        "accepted_rows_by_EC": {
+          "E1|C1": 12744,
+          "E1|C2": 85,
+          "E1|C3": 424,
+          "E1|C4": 379,
+          "E1|C5": 1555,
+          "E2|C1": 344,
+          "E2|C2": 3,
+          "E2|C3": 13,
+          "E2|C4": 13,
+          "E2|C5": 11,
+          "E3|C1": 2,
+          "E3|C2": 3,
+          "E3|C3": 277,
+          "E3|C4": 45,
+          "E3|C5": 36
         },
-        "KOR": {
-          "Coping and Management": 430,
-          "Emotional Expression": 581,
-          "Perceived Cause": 400,
-          "Perceived Consequences": 375,
-          "Symptom Description": 1421
+        "accepted_rows_by_domain": {
+          "Coping and Management": 5863,
+          "Emotional Expression": 5735,
+          "Perceived Cause": 4553,
+          "Perceived Consequences": 4497,
+          "Symptom Description": 14438
+        }
+      },
+      "accepted_unit_count": 44165,
+      "unit_breakdown": {
+        "accepted_units_by_country": {
+          "CHI": 6123,
+          "JPN": 34309,
+          "KOR": 3733
+        },
+        "accepted_units_by_EC": {
+          "E1|C1": 35159,
+          "E1|C2": 468,
+          "E1|C3": 1416,
+          "E1|C4": 1595,
+          "E1|C5": 3335,
+          "E2|C1": 943,
+          "E2|C2": 9,
+          "E2|C3": 31,
+          "E2|C4": 36,
+          "E2|C5": 20,
+          "E3|C1": 4,
+          "E3|C2": 13,
+          "E3|C3": 852,
+          "E3|C4": 207,
+          "E3|C5": 77
+        },
+        "accepted_units_by_domain": {
+          "Coping and Management": 8192,
+          "Emotional Expression": 6597,
+          "Perceived Cause": 4973,
+          "Perceived Consequences": 4945,
+          "Symptom Description": 19458
         }
       }
     },
-    "r1_anyE_anyC": {
-      "total_rows": 13176,
-      "rows_by_country": {
-        "CHI": 696,
-        "JPN": 11105,
-        "KOR": 1375
-      },
-      "accepted_unit_count": 36579,
-      "accepted_units_by_country": {
-        "CHI": 3995,
-        "JPN": 29244,
-        "KOR": 3340
-      },
-      "accepted_units_by_domain": {
-        "Coping and Management": 6259,
-        "Emotional Expression": 5650,
-        "Perceived Cause": 4060,
-        "Perceived Consequences": 4191,
-        "Symptom Description": 16419
-      }
-    },
-    "r1_anyE_c1c2": {
-      "total_rows": 13176,
-      "rows_by_country": {
-        "CHI": 696,
-        "JPN": 11105,
-        "KOR": 1375
-      },
-      "accepted_unit_count": 36579,
-      "accepted_units_by_country": {
-        "CHI": 3995,
-        "JPN": 29244,
-        "KOR": 3340
-      },
-      "accepted_units_by_domain": {
-        "Coping and Management": 6259,
-        "Emotional Expression": 5650,
-        "Perceived Cause": 4060,
-        "Perceived Consequences": 4191,
-        "Symptom Description": 16419
-      }
-    },
-    "r1_e1_anyC": {
-      "total_rows": 12829,
-      "rows_by_country": {
-        "CHI": 687,
-        "JPN": 10819,
-        "KOR": 1323
+    "R1_E1_C1C2": {
+      "total_rows": 13386,
+      "rows_with_extracted_csm_units": 12885,
+      "rows_with_at_least_one_accepted_csm_unit": 12829,
+      "row_breakdown": {
+        "accepted_rows_by_country": {
+          "CHI": 687,
+          "JPN": 10819,
+          "KOR": 1323
+        },
+        "accepted_rows_by_EC": {
+          "E1|C1": 12744,
+          "E1|C2": 85
+        },
+        "accepted_rows_by_domain": {
+          "Coping and Management": 4588,
+          "Emotional Expression": 4752,
+          "Perceived Cause": 3601,
+          "Perceived Consequences": 3702,
+          "Symptom Description": 11827
+        }
       },
       "accepted_unit_count": 35627,
-      "accepted_units_by_country": {
-        "CHI": 3940,
-        "JPN": 28480,
-        "KOR": 3207
-      },
-      "accepted_units_by_domain": {
-        "Coping and Management": 6079,
-        "Emotional Expression": 5486,
-        "Perceived Cause": 3941,
-        "Perceived Consequences": 4066,
-        "Symptom Description": 16055
+      "unit_breakdown": {
+        "accepted_units_by_country": {
+          "CHI": 3940,
+          "JPN": 28480,
+          "KOR": 3207
+        },
+        "accepted_units_by_EC": {
+          "E1|C1": 35159,
+          "E1|C2": 468
+        },
+        "accepted_units_by_domain": {
+          "Coping and Management": 6079,
+          "Emotional Expression": 5486,
+          "Perceived Cause": 3941,
+          "Perceived Consequences": 4066,
+          "Symptom Description": 16055
+        }
       }
     }
-  },
-  "combined_unique_posts": 36720
+  }
 }

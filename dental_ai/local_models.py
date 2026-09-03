@@ -961,6 +961,8 @@ def _normalize_csm_unit_enums(unit: dict[str, Any]) -> None:
         unit["assertion"] = "uncertain"
     elif assertion in {"plan", "future"}:
         unit["assertion"] = "planned"
+    elif assertion in {"none", "not_applicable", "n/a", "na"}:
+        unit["assertion"] = "uncertain"
     elif assertion in {
         "effective",
         "ineffective",

@@ -27,6 +27,12 @@ def main() -> int:
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--shard-count", type=int, default=3)
     parser.add_argument(
+        "--post-id",
+        action="append",
+        default=[],
+        help="Restrict preparation to one or more specific post IDs.",
+    )
+    parser.add_argument(
         "--first-pass-dir",
         action="append",
         default=[
@@ -61,7 +67,11 @@ def main() -> int:
             if post_id and has_accepted_unit(row):
                 corpus[post_id] = row
 
-    targets = [row for row in corpus.values() if should_force_extract(row)]
+    if args.post_id:
+        post_ids = set(args.post_id)
+        targets = [row for post_id, row in corpus.items() if post_id in post_ids]
+    else:
+        targets = [row for row in corpus.values() if should_force_extract(row)]
     targets.sort(key=lambda row: get_post_id(row))
 
     with input_path.open("w", encoding="utf-8") as handle:
