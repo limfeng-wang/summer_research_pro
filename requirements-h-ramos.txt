@@ -4,6 +4,9 @@ pandas
 openpyxl
 pytest
 PyYAML
+scipy
+networkx
+matplotlib
 huggingface_hub
 
 # Local Hugging Face model stack, installed before real model integration.

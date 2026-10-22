@@ -1,0 +1,84 @@
+{
+  "scope": "Proposal only. Active example files, configuration, and study outputs are unchanged.",
+  "evidence_limit": "Classifier usage reconstructed from current deterministic selector; historical rendered classifier prompts are not archived. All RAG examples are preserved, irrespective of historical retrieval frequency.",
+  "unused_candidate_counts_preserving_all_rag_and_classifier_selections": {
+    "CHI": 31,
+    "JPN": 27,
+    "KOR": 24
+  },
+  "removed_counts": {
+    "KOR": 5,
+    "JPN": 10,
+    "CHI": 12
+  },
+  "retained_classification_counts": {
+    "CHI": 47,
+    "JPN": 50,
+    "KOR": 48
+  },
+  "retained_rag_counts": {
+    "JPN": 22,
+    "CHI": 19,
+    "KOR": 19
+  },
+  "retained_development_union_counts": {
+    "CHI": 50,
+    "KOR": 50,
+    "JPN": 50
+  },
+  "main_eval_classifier_ids": {
+    "CHI": [
+      "64b2df91000000001e01b8c8",
+      "65d9cc76000000000b023fba",
+      "66756a3f000000001c023231",
+      "669cd61a000000000302705c",
+      "66aecfaf000000002701df6c",
+      "69f73ae9000000001a034d49",
+      "6a19629a000000003502bdd9",
+      "6a23b8760000000016024c1b"
+    ],
+    "JPN": [
+      "1540",
+      "2010",
+      "2476",
+      "457",
+      "4656",
+      "4761",
+      "7120",
+      "817"
+    ],
+    "KOR": [
+      "136",
+      "180",
+      "196",
+      "241",
+      "40",
+      "47",
+      "704",
+      "723"
+    ]
+  },
+  "verified_input_counts": {
+    "data/raw_main_llm_input_no_gold.jsonl": {
+      "CHI": 3521,
+      "JPN": 25168,
+      "KOR": 8032
+    },
+    "data/raw_eval_holdout_150_no_gold.jsonl": {
+      "CHI": 50,
+      "JPN": 50,
+      "KOR": 50
+    }
+  },
+  "selection_invariance": "Identical ordered eight-example payloads for all original classification targets and one nondevelopment target per language. All actual main/evaluation IDs are outside development, so their selections match the respective nondevelopment target.",
+  "rag_invariance": "All 60 RAG records remain; retrieval pool, ordering, and content are unchanged.",
+  "candidate_selection_rule": "Last required eligible records in original classifier-file order, after protecting all RAG records and all classifier selections for development/nondevelopment targets. No outcome metrics used.",
+  "sha256": {
+    "data/classification_gold_172.jsonl": "fb486c80fccdb83280bc071228d91502aa042ce55b1bd7d308b3ca3437ce0e3e",
+    "data/csm_gold_50E1_10E2.json": "1726da3905b5d1003fda057a032e17644446f54b91575d317998de19f70a60a7",
+    "data/raw_main_llm_input_no_gold.jsonl": "b7078fc2f3cf004243536b82ff86359dfc05df8667eaef44b21ea46ea3bb03ab",
+    "data/raw_eval_holdout_150_no_gold.jsonl": "2e4419ecb800d6a19bb61d2962a93c1e7a71ba6308602582843fa25cc9b9762e",
+    "dental_ai/local_models.py": "10ce54167279a64e27133dc9aa091daecca56816513ab127e7c89e14eeb0bd7e",
+    "scripts/audit_development_balance.py": "cd673211b07d9e79ec0cc163b2216b5a6e6345503c4667fd52ecb2c67c0cdd0d"
+  }
+}

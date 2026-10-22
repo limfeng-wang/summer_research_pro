@@ -1,0 +1,63 @@
+{
+  "dataset_version": "1.0.0",
+  "format": "UTF-8 JSONL",
+  "files": {
+    "development/posts.jsonl": {
+      "rows": 150,
+      "sha256": "df6695f4ede41075ba00566b372bfc227759798fcacdc92b4b68473543d17ef8",
+      "countries": {
+        "CHI": 50,
+        "JPN": 50,
+        "KOR": 50
+      }
+    },
+    "evaluation/posts.jsonl": {
+      "rows": 150,
+      "sha256": "76cb6147481460e7b6188c57f703c00bf873c921af7a544791c34325c7c09bb7",
+      "countries": {
+        "CHI": 50,
+        "JPN": 50,
+        "KOR": 50
+      }
+    },
+    "evaluation/annotations.jsonl": {
+      "rows": 150,
+      "sha256": "551cf150e5ae28511e1ada032782e01f6b83ae0ea0e866d9d3d4f95dcb3f5fb7"
+    },
+    "main/posts.jsonl": {
+      "rows": 36720,
+      "sha256": "c8b1cd7523c7f263c74c580d74de1884dcd048651576768007c4ea9d7f2e2843",
+      "countries": {
+        "CHI": 3521,
+        "JPN": 25167,
+        "KOR": 8032
+      }
+    }
+  },
+  "development": {
+    "unique_posts": 150,
+    "classification": 145,
+    "extraction": 60,
+    "both": 55,
+    "curation": "Retrospective balanced subset of 177 development posts; 27 classification-only posts removed. Current ordered classifier selections and all 60 RAG examples preserved."
+  },
+  "evaluation": {
+    "posts": 150,
+    "reference_text_variants": 51
+  },
+  "main": {
+    "posts": 36720,
+    "manuscript_primary_posts": 12829,
+    "strict_primary_posts": 12817,
+    "manuscript_primary_verdict_accepted_units": 35627
+  },
+  "source_sha256": {
+    "classification_development": "fb486c80fccdb83280bc071228d91502aa042ce55b1bd7d308b3ca3437ce0e3e",
+    "rag_reference": "1726da3905b5d1003fda057a032e17644446f54b91575d317998de19f70a60a7",
+    "removal_roster": "040e221b07b18d89cf2396cd98d30ed8465703cffc71f992a381d22159546ebb",
+    "evaluation_input": "2e4419ecb800d6a19bb61d2962a93c1e7a71ba6308602582843fa25cc9b9762e",
+    "evaluation_reference": "b99ab0566c232e28c14227924dcf9812c2c62e729a619d0a2440e829d66b6465",
+    "main_corpus": "fe9ed08282afca39307246f49c592dda47c4eedec76c1e7a4a178e828ca387bb"
+  },
+  "identifiers": "Split-specific release IDs replace original record/unit IDs. Original source text and annotations retained; internal file paths, spreadsheet locations, and run names omitted."
+}
