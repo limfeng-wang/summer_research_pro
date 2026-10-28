@@ -1,0 +1,48 @@
+{
+  "release_scope": "Aggregate metadata only; no original posts, annotations, evidence spans, or individual-level model outputs are distributed.",
+  "dataset_version": "1.0.0",
+  "corpora": {
+    "CHI": {
+      "language": "zh",
+      "platform": "Xiaohongshu"
+    },
+    "JPN": {
+      "language": "ja",
+      "platform": "X"
+    },
+    "KOR": {
+      "language": "ko",
+      "platform": "X"
+    }
+  },
+  "development": {
+    "unique_posts": 150,
+    "classification": 145,
+    "extraction": 60,
+    "both": 55,
+    "curation": "Retrospective balanced subset of 177 development posts; 27 classification-only posts removed. Current ordered classifier selections and all 60 RAG examples preserved.",
+    "posts_per_language": 50
+  },
+  "evaluation": {
+    "posts": 150,
+    "reference_text_variants": 51,
+    "posts_per_language": 50
+  },
+  "main": {
+    "posts": 36720,
+    "manuscript_primary_posts": 12829,
+    "strict_primary_posts": 12817,
+    "manuscript_primary_verdict_accepted_units": 35627,
+    "posts_by_country": {
+      "CHI": 3521,
+      "JPN": 25167,
+      "KOR": 8032
+    },
+    "manuscript_primary_by_country": {
+      "CHI": 687,
+      "JPN": 10819,
+      "KOR": 1323
+    }
+  },
+  "data_access": "The underlying dataset is not publicly released. Researchers may request access by emailing Kun Wang (2511110190@pku.edu.cn) or Beibei Xu (xubeibei@bjmu.edu.cn). Requests are considered individually; access is not guaranteed."
+}

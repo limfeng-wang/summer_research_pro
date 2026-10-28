@@ -1,0 +1,17 @@
+{
+  "posts": 36720,
+  "countries": {
+    "CHI": 3521,
+    "JPN": 25167,
+    "KOR": 8032
+  },
+  "primary_posts": 12829,
+  "primary_countries": {
+    "CHI": 687,
+    "JPN": 10819,
+    "KOR": 1323
+  },
+  "primary_verdict_accepted_units": 35627,
+  "strict_primary_posts": 12817,
+  "unit_rule": "Archived manuscript rule: judge_verdict=accept; see quality flags for stricter alternatives."
+}

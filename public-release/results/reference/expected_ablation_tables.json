@@ -1,0 +1,58 @@
+{
+  "eligibility_gate_metrics.csv": {
+    "rows": 16,
+    "sha256_sorted_rows": "70f420745059b862c16ab9a65ce8200435f476ec8bee9301f907bb0bd1c3fdd4"
+  },
+  "eligibility_gate_confidence_intervals.csv": {
+    "rows": 64,
+    "sha256_sorted_rows": "c3686a6219e02881e2fd57cb9c4b57913ccbc5157cc120a8d002e8b201e6e866"
+  },
+  "unit_validation_metrics.csv": {
+    "rows": 96,
+    "sha256_sorted_rows": "0302ea9929e7c3fd6777bf2f698456de3d1023e69020fa4f9ce14e6664d82c00"
+  },
+  "unit_validation_confidence_intervals.csv": {
+    "rows": 320,
+    "sha256_sorted_rows": "e0f3855d4ea5b12a70b7559cb0eff3dbe29373b97fee83597dc47a6ed8eb44e4"
+  },
+  "unit_validation_retention.csv": {
+    "rows": 16,
+    "sha256_sorted_rows": "2970788ee7828cfc021d2a8d815964556318469c900be33796fe26e442f51745"
+  },
+  "unit_validation_normalization_metrics.csv": {
+    "rows": 16,
+    "sha256_sorted_rows": "9bd8c308a184b7f1e0b1b4422c0faea8a637398f50d66f522a5c7fabfd8c56a2"
+  },
+  "domain_distributions_35_configs.csv": {
+    "rows": 525,
+    "sha256_sorted_rows": "8679097a4693de7b251152c352f54449267e99f3f28ebc0374ba82bd54284134"
+  },
+  "country_profile_tests.csv": {
+    "rows": 35,
+    "sha256_sorted_rows": "fc516cc59a5976f3d665161891a91465ef666782dea306a93b19c002f4c5111f"
+  },
+  "concept_rank_topk_stability.csv": {
+    "rows": 525,
+    "sha256_sorted_rows": "493af438bba42ccbc52f0062791d31817b4783c244f8a4e6b361829c44f05de3"
+  },
+  "network_stability_results.csv": {
+    "rows": 105,
+    "sha256_sorted_rows": "c13e182de3b538c26ecd40d69255a70169b6672fd2a4560899c7d8297fb6e310"
+  },
+  "domain_profile_stability.csv": {
+    "rows": 525,
+    "sha256_sorted_rows": "b5a3e02e2e241788a9ef90f95041012e86783b3f842fb3aeabc0d0bb87902cc2"
+  },
+  "principal_findings_stability.csv": {
+    "rows": 105,
+    "sha256_sorted_rows": "3a229cfdc846e71ff04a4aa174b69983afb570b564b85cefb351d208da60e6e8"
+  },
+  "population_denominators_by_country.csv": {
+    "rows": 20,
+    "sha256_sorted_rows": "badc30a71377d68fd86e8d26b9264d684e9a75898aa350edd2a5acc74580512a"
+  },
+  "standardized_residuals.csv": {
+    "rows": 525,
+    "sha256_sorted_rows": "33851f6d56bb93abf4766194992097dbfc84b1f70cf54f9ffc0cca3bb4e3e8fa"
+  }
+}

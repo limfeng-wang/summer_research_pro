@@ -1,0 +1,10 @@
+# Selected versions from the successful 2026-10-24 GPU smoke test.
+# Install torch/torchvision from the CUDA 12.8 index first (see README).
+# Constraints do not install packages and this is not a full environment lock.
+torch==2.9.1+cu128
+torchvision==0.24.1+cu128
+transformers==5.20.2
+accelerate==1.15.0
+bitsandbytes==0.50.2
+sentence-transformers==6.2.0
+huggingface-hub==2.3.0

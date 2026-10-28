@@ -1,0 +1,89 @@
+{
+  "gold_rows": 150,
+  "pred_rows": 150,
+  "matched_rows": 150,
+  "bootstrap_iterations": 2000,
+  "bootstrap_seed": 20260824,
+  "overall": {
+    "eligibility": {
+      "tp": 26,
+      "fp": 6,
+      "fn": 26,
+      "tn": 92,
+      "support": 52,
+      "precision": 0.8125,
+      "recall": 0.5,
+      "f1": 0.6190476190476191
+    },
+    "classification_exact_accuracy": 0.5866666666666667,
+    "csm_domain_macro_f1": 0.3684472049689441,
+    "normalization_micro": {
+      "metric": "normalization",
+      "domain": "overall",
+      "tp": 16,
+      "fp": 59,
+      "fn": 210,
+      "tn": 0,
+      "support": 226,
+      "precision": 0.21333333333333335,
+      "recall": 0.07079646017699115,
+      "f1": 0.10631229235880398
+    },
+    "unit_quality": {
+      "unit_count": 99,
+      "accepted_unit_count": 75,
+      "accepted_unit_rate": 0.7575757575757576,
+      "evidence_span_support_rate": 0.98989898989899,
+      "rejected_unit_rate": 0.23232323232323232,
+      "unsupported_unit_rate": 0.16161616161616163,
+      "hallucination_proxy_rate": 0.23232323232323232
+    }
+  },
+  "confidence_intervals": {
+    "eligibility_f1": {
+      "mean": 0.6148680841456755,
+      "ci_low": 0.4799999999999999,
+      "ci_high": 0.7333333333333334
+    },
+    "classification_exact_accuracy": {
+      "mean": 0.586943333333348,
+      "ci_low": 0.5066666666666667,
+      "ci_high": 0.6666666666666666
+    },
+    "csm_domain_macro_f1": {
+      "mean": 0.36271173182481414,
+      "ci_low": 0.2549164720010328,
+      "ci_high": 0.47040471879181556
+    },
+    "normalization_micro_f1": {
+      "mean": 0.1060709203643116,
+      "ci_low": 0.056657223796034,
+      "ci_high": 0.15767634854771787
+    },
+    "domain_f1::Perceived Cause": {
+      "mean": 0.1955548502438946,
+      "ci_low": 0.05,
+      "ci_high": 0.3684210526315789
+    },
+    "domain_f1::Symptom Description": {
+      "mean": 0.6830739522763887,
+      "ci_low": 0.5454545454545454,
+      "ci_high": 0.8059701492537312
+    },
+    "domain_f1::Perceived Consequences": {
+      "mean": 0.3353185519676624,
+      "ci_low": 0.0909090909090909,
+      "ci_high": 0.5714285714285714
+    },
+    "domain_f1::Coping and Management": {
+      "mean": 0.3012378372258516,
+      "ci_low": 0.125,
+      "ci_high": 0.47619047619047616
+    },
+    "domain_f1::Emotional Expression": {
+      "mean": 0.2983734674102696,
+      "ci_low": 0.125,
+      "ci_high": 0.4727272727272727
+    }
+  }
+}

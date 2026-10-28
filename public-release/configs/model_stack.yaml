@@ -1,0 +1,49 @@
+model_stack:
+  classifier:
+    role: hierarchical relevance and R1 classification
+    model_id: Qwen/Qwen3-4B-Instruct-2507
+    backend: transformers
+    quantization: 8bit
+    device_policy: auto
+  extractor:
+    role: CSM evidence-unit extraction
+    model_id: Qwen/Qwen3.5-9B
+    backend: transformers
+    quantization: 8bit
+    device_policy: auto
+  judge:
+    role: LLM-as-Judge
+    model_id: google/gemma-4-12b-it
+    backend: transformers-gemma4
+    quantization: 8bit
+    device_policy: auto
+  retriever:
+    role: multilingual dense retrieval
+    model_id: BAAI/bge-m3
+    backend: sentence-transformers
+  reranker:
+    role: multilingual reranking
+    model_id: BAAI/bge-reranker-v2-m3
+    backend: FlagEmbedding
+
+runtime:
+  load_one_llm_at_a_time: true
+  default_rag_k: 5
+  classification_fewshot_k: 8
+  use_reranker: false
+  reranker_backend: transformers
+  reranker_batch_size: 1
+  reranker_max_length: 512
+  reranker_use_fp16: true
+  reranker_device: auto
+  default_working_language: zh
+  source_text_authority: text_clean
+
+paths:
+  # Private inputs required for real inference; these records are not distributed.
+  classification_gold: data/publication_dataset/development/posts.jsonl
+  rag_gold: data/publication_dataset/development/posts.jsonl
+  eval_holdout: data/publication_dataset/evaluation/posts.jsonl
+  main_input: data/publication_dataset/main/posts.jsonl
+  split_manifest: data/publication_dataset/manifest.json
+  output_dir: outputs/hierarchical_run
